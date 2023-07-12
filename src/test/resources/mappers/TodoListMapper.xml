@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mynghn.persistenceaop.mapper.TodoListMapper">
+  <insert id="insert" parameterType="mynghn.persistenceaop.entity.TodoList">
+    <selectKey keyProperty="id" order="BEFORE" resultType="string">
+      select (to_char(current_date, 'YYMMDD') || '-' || (lpad(coalesce(max(substring(tl.id, 8, 10)::int), 0) + 1::text, 3, '0'))) as new_id
+      from PUBLIC.todo_list as tl
+      where substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
+    </selectKey>
+    insert into PUBLIC.todo_list
+    (id, title)
+    values (#{id},#{title})
+  </insert>
+  <update id="update">
+    UPDATE PUBLIC.todo_list
+    <set>
+      <if test="payload.title != null">title = #{payload.title}</if>
+    </set>
+    WHERE id = #{entityId}
+  </update>
+  <insert id="recordHistory">
+    insert into PUBLIC.todo_list_history(todo_list_id, history_sequence_no, todo_list_title)
+    select tl.id,
+           (select coalesce(max(tlh.history_sequence_no) + 1, 0)
+            from PUBLIC.todo_list_history tlh
+            where tlh.todo_list_id = #{entityId}),
+           tl.title
+    from PUBLIC.todo_list as tl
+    where tl.id = #{entityId}
+  </insert>
+</mapper>

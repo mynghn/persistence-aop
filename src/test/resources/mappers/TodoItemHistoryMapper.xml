@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mynghn.persistenceaop.mapper.TodoItemHistoryMapper">
+  <insert id="recordHistory">
+    insert into PUBLIC.todo_item_history(todo_item_id, history_sequence_no, todo_item_title,
+                                         todo_item_description, todo_item_due_date,
+                                         todo_item_todo_list_id)
+    select ti.id,
+           (select coalesce(max(tih.history_sequence_no) + 1, 0)
+            from PUBLIC.todo_item_history tih
+            where tih.todo_item_id = #{entityId}),
+           ti.title,
+           ti.description,
+           ti.due_date,
+           ti.todo_list_id
+    from PUBLIC.todo_item as ti
+    where ti.id = #{entityId}
+  </insert>
+</mapper>
