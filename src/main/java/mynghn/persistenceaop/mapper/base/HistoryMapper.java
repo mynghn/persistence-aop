@@ -5,4 +5,6 @@ import mynghn.persistenceaop.entity.base.Entity;
 public interface HistoryMapper<E extends Entity<ID>, ID> {
 
     int recordHistory(ID entityId);
+
+    <S> int recordHistories(S spec);
 }

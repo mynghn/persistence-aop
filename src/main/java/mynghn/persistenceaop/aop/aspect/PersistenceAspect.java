@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mynghn.persistenceaop.aop.annotations.Id;
 import mynghn.persistenceaop.aop.annotations.Payload;
+import mynghn.persistenceaop.aop.annotations.RecordHistory;
+import mynghn.persistenceaop.aop.annotations.Specification;
 import mynghn.persistenceaop.entity.base.Entity;
 import mynghn.persistenceaop.mapper.base.GenericMapper;
 import mynghn.persistenceaop.mapper.base.HistoryMapper;
@@ -87,6 +89,18 @@ public class PersistenceAspect {
         return entity.getId();
     }
 
+    private static <S> S getEntitySpecification(JoinPoint joinPoint) {
+        int[] specArgsIndexArr = getAnnotatedArgsIndexArr(joinPoint, Specification.class);
+        if (specArgsIndexArr.length > 1) {
+            throw new IllegalStateException("Too many @Specification annotated args found.");
+        }
+        if (specArgsIndexArr.length == 0) {
+            throw new IllegalStateException("@Specification annotated arg not found.");
+        }
+        @SuppressWarnings("unchecked") S entitySpec = (S) joinPoint.getArgs()[specArgsIndexArr[0]];
+        return entitySpec;
+    }
+
     @Pointcut("target(mynghn.persistenceaop.mapper.base.GenericMapper)")
     private void targetGenericMapper() {
     }
@@ -95,7 +109,7 @@ public class PersistenceAspect {
             value = "targetGenericMapper() && @annotation(mynghn.persistenceaop.aop.annotations.RecordHistory)",
             returning = "entitiesUpdated"
     )
-    public <E extends Entity<ID>, ID> void recordEntityHistory(
+    public <S, E extends Entity<ID>, ID> void recordEntityHistory(
             JoinPoint joinPoint,
             int entitiesUpdated
     ) {
@@ -111,15 +125,23 @@ public class PersistenceAspect {
             return;
         }
 
-        ID entityId = getEntityId(joinPoint);
+        MethodSignature joinPointSignature = (MethodSignature) joinPoint.getSignature();
+        RecordHistory annotation = joinPointSignature.getMethod().getAnnotation(RecordHistory.class);
 
-        int rowsUpdated = historyMapper.recordHistory(entityId);
-
-        if (rowsUpdated == 0) {
-            throw new IllegalStateException("Entity history not recorded.");
+        int historiesRecorded;
+        if (annotation.many()) {
+            S entitySpec = getEntitySpecification(joinPoint);
+            historiesRecorded = historyMapper.recordHistories(entitySpec);
+        } else {
+            ID entityId = getEntityId(joinPoint);
+            historiesRecorded = historyMapper.recordHistory(entityId);
         }
-        if (rowsUpdated > 1) {
-            throw new IllegalStateException("More than one entity histories recorded.");
+
+        if (historiesRecorded != entitiesUpdated) {
+            throw new IllegalStateException(String.format(
+                    "Updated entities(%d) and recorded histories(%d) count do not match.",
+                    entitiesUpdated, historiesRecorded
+            ));
         }
     }
 
