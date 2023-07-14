@@ -1,24 +1,21 @@
 package mynghn.persistenceaop.mapper.base;
 
 import java.util.List;
-import mynghn.persistenceaop.aop.annotations.Id;
-import mynghn.persistenceaop.aop.annotations.Payload;
-import mynghn.persistenceaop.aop.annotations.Specification;
-import mynghn.persistenceaop.entity.base.Entity;
 import org.apache.ibatis.annotations.Param;
 
-public interface CrudMapper<E extends Entity<ID>, ID> extends GenericMapper<E, ID> {
+public interface CrudMapper<E, ID> extends GenericMapper<E, ID> {
 
-    <P extends E> int insert(@Payload P payload);
+    ID insert(E payload);
 
-    E select(@Id ID entityId);
+    E select(ID id);
 
-    <S> List<E> selectAll(@Specification S spec);
+    <S> List<E> selectAll(S specification);
 
-    <P> int update(@Param("entityId") @Id ID entityId, @Param("payload") @Payload P payload);
+    <P> ID update(@Param("id") ID id, @Param("payload") P payload);
 
-    <P, S> int updateAll(@Param("spec") @Specification S spec, @Param("payload") @Payload P payload);
+    <P, S> List<ID> updateAll(@Param("specification") S specification, @Param("payload") P payload);
 
-    int delete(@Id ID entityId);
-    <S> int deleteAll(@Specification S spec);
+    int delete(ID id);
+
+    <S> int deleteAll(S specification);
 }

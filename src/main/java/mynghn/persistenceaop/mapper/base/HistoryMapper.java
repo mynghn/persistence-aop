@@ -1,10 +1,10 @@
 package mynghn.persistenceaop.mapper.base;
 
-import mynghn.persistenceaop.entity.base.Entity;
+import java.util.List;
 
-public interface HistoryMapper<E extends Entity<ID>, ID> {
+public interface HistoryMapper<E, ID> {
 
     int recordHistory(ID entityId);
 
-    <S> int recordHistories(S spec);
+    int recordHistories(List<ID> entityIds);
 }

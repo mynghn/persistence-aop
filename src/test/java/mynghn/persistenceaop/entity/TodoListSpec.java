@@ -5,13 +5,9 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class TodoList {
+public class TodoListSpec {
 
     private String id;
 
-    private String title;
-
-    public void setId(String id) {
-        this.id = id;
-    }
+    private String titleLike;
 }

@@ -1,22 +1,15 @@
 package mynghn.persistenceaop.aop.aspect;
 
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.stream.IntStream;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.aop.annotations.Id;
-import mynghn.persistenceaop.aop.annotations.Payload;
 import mynghn.persistenceaop.aop.annotations.RecordHistory;
-import mynghn.persistenceaop.aop.annotations.Specification;
-import mynghn.persistenceaop.entity.base.Entity;
 import mynghn.persistenceaop.mapper.base.GenericMapper;
 import mynghn.persistenceaop.mapper.base.HistoryMapper;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
-import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ResolvableType;
 import org.springframework.stereotype.Component;
@@ -41,111 +34,76 @@ public class PersistenceAspect {
         return joinPointMapper;
     }
 
-    private static <A extends Annotation> int[] getAnnotatedArgsIndexArr(
-            JoinPoint joinPoint,
-            Class<A> annotationClass
+    private static <E, ID> void recordOneHistory(
+            HistoryMapper<E, ID> historyMapper, ID updatedEntityId) {
+        if (updatedEntityId == null) {
+            log.debug("0 entities updated. Skipping advice...");
+            return;
+        }
+
+        int historiesRecorded = historyMapper.recordHistory(updatedEntityId);
+
+        if (historiesRecorded == 0) {
+            throw new IllegalStateException("No histories recorded.");
+        }
+        if (historiesRecorded > 1) {
+            throw new IllegalStateException(String.format(
+                    "Too many histories recorded: %d. Should have recorded only 1.",
+                    historiesRecorded
+            ));
+        }
+    }
+
+    private static <E, ID> void recordManyHistories(
+            HistoryMapper<E, ID> historyMapper, List<ID> updatedEntityIds
     ) {
-        Annotation[][] paramAnnotationsArr = ((MethodSignature) joinPoint.getSignature())
-                .getMethod().getParameterAnnotations();
-
-        return IntStream.range(0, paramAnnotationsArr.length)
-                .filter(idx -> Arrays.stream(paramAnnotationsArr[idx])
-                        .anyMatch(annotation -> annotation.annotationType() == annotationClass))
-                .toArray();
-    }
-
-    private static <ID> ID getEntityId(JoinPoint joinPoint) {
-        Object[] joinPointArgs = joinPoint.getArgs();
-
-        // 1. Use @Id annotated arg
-        int[] idArgsIndexArr = getAnnotatedArgsIndexArr(joinPoint, Id.class);
-        if (idArgsIndexArr.length > 1) {
-            throw new IllegalStateException("Too many @Id annotated args found.");
-        }
-        if (idArgsIndexArr.length == 1) {
-            @SuppressWarnings("unchecked")
-            ID entityId = (ID) joinPointArgs[idArgsIndexArr[0]];
-            return entityId;
+        if (updatedEntityIds.size() == 0) {
+            log.debug("0 entities updated. Skipping advice...");
+            return;
         }
 
-        // 2. Use @Payload annotated Entity<ID> type arg
-        int[] payloadArgsIndexArr = getAnnotatedArgsIndexArr(joinPoint, Payload.class);
-        if (payloadArgsIndexArr.length > 1) {
-            throw new IllegalStateException("Too many @Payload annotated args found.");
-        }
-        if (payloadArgsIndexArr.length == 0) {
-            throw new IllegalStateException("Both @Id and @Payload annotated args not found.");
-        }
-        Object payloadArg = joinPointArgs[payloadArgsIndexArr[0]];
-        if (!(payloadArg instanceof Entity<?>)) {
-            throw new IllegalStateException(
-                    "@Payload arg (not along with @Id arg) must be Entity<ID> type for history recording."
-            );
-        }
+        int historiesRecorded = historyMapper.recordHistories(updatedEntityIds);
 
-        @SuppressWarnings("unchecked")
-        Entity<ID> entity = ((Entity<ID>) payloadArg);
-
-        return entity.getId();
-    }
-
-    private static <S> S getEntitySpecification(JoinPoint joinPoint) {
-        int[] specArgsIndexArr = getAnnotatedArgsIndexArr(joinPoint, Specification.class);
-        if (specArgsIndexArr.length > 1) {
-            throw new IllegalStateException("Too many @Specification annotated args found.");
+        if (historiesRecorded != updatedEntityIds.size()) {
+            throw new IllegalStateException(String.format(
+                    "Updated entities(%d) and recorded histories(%d) count do not match.",
+                    updatedEntityIds.size(), historiesRecorded
+            ));
         }
-        if (specArgsIndexArr.length == 0) {
-            throw new IllegalStateException("@Specification annotated arg not found.");
-        }
-        @SuppressWarnings("unchecked") S entitySpec = (S) joinPoint.getArgs()[specArgsIndexArr[0]];
-        return entitySpec;
     }
 
     @Pointcut("target(mynghn.persistenceaop.mapper.base.GenericMapper)")
     private void targetGenericMapper() {
     }
 
-    @AfterReturning(
-            value = "targetGenericMapper() && @annotation(mynghn.persistenceaop.aop.annotations.RecordHistory)",
-            returning = "entitiesUpdated"
-    )
-    public <S, E extends Entity<ID>, ID> void recordEntityHistory(
+    @AfterReturning(pointcut = "targetGenericMapper() && @annotation(annotation)", returning = "updated")
+    public <E, ID> void recordEntityHistory(
             JoinPoint joinPoint,
-            int entitiesUpdated
+            RecordHistory annotation,
+            Object updated
     ) {
         log.debug("Advice starting on Join point: {}", joinPoint);
         GenericMapper<E, ID> joinPointMapper = getTargetGenericMapper(joinPoint);
 
-        HistoryMapper<E, ID> historyMapper = getHistoryMapperBean(
+        HistoryMapper<E, ID> historyMapper = getHistoryMapperByType(
                 joinPointMapper.getEntityType(), joinPointMapper.getEntityIdType()
         );
 
-        if (entitiesUpdated == 0) {
-            log.debug("0 rows updated. Skipping advice...");
-            return;
-        }
-
-        MethodSignature joinPointSignature = (MethodSignature) joinPoint.getSignature();
-        RecordHistory annotation = joinPointSignature.getMethod().getAnnotation(RecordHistory.class);
-
-        int historiesRecorded;
         if (annotation.many()) {
-            S entitySpec = getEntitySpecification(joinPoint);
-            historiesRecorded = historyMapper.recordHistories(entitySpec);
+            if (!(updated instanceof List<?>)) {
+                throw new IllegalStateException(
+                        "@RecordHistory(many=true) annotated method should return List<ID> type."
+                );
+            }
+            @SuppressWarnings("unchecked") List<ID> updatedEntityIds = (List<ID>) updated;
+            recordManyHistories(historyMapper, updatedEntityIds);
         } else {
-            ID entityId = getEntityId(joinPoint);
-            historiesRecorded = historyMapper.recordHistory(entityId);
-        }
-
-        if (historiesRecorded != entitiesUpdated) {
-            throw new IllegalStateException(String.format(
-                    "Updated entities(%d) and recorded histories(%d) count do not match.",
-                    entitiesUpdated, historiesRecorded
-            ));
+            @SuppressWarnings("unchecked") ID updatedEntityId = (ID) updated;
+            recordOneHistory(historyMapper, updatedEntityId);
         }
     }
 
-    private <E extends Entity<ID>, ID> HistoryMapper<E, ID> getHistoryMapperBean(
+    private <E, ID> HistoryMapper<E, ID> getHistoryMapperByType(
             Class<E> entityType,
             Class<ID> entityIdType
     ) {

@@ -3,11 +3,10 @@ package mynghn.persistenceaop.entity;
 import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
-import mynghn.persistenceaop.entity.base.Entity;
 
 @Getter
 @Builder
-public class TodoItem implements Entity<String> {
+public class TodoItem{
 
     private String todoListId;
 
