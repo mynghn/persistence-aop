@@ -2,23 +2,35 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mynghn.persistenceaop.mapper.TodoListMapper">
-  <insert id="insert" parameterType="mynghn.persistenceaop.entity.TodoList">
-    <selectKey keyProperty="id" order="BEFORE" resultType="string">
-      select (to_char(current_date, 'YYMMDD') || '-' || (lpad(coalesce(max(substring(tl.id, 8, 10)::int), 0) + 1::text, 3, '0'))) as new_id
-      from PUBLIC.todo_list as tl
-      where substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
-    </selectKey>
-    insert into PUBLIC.todo_list
-    (id, title)
-    values (#{id},#{title})
-  </insert>
-  <update id="update">
+  <select id="insert" parameterType="mynghn.persistenceaop.entity.TodoList" resultType="string">
+    INSERT INTO PUBLIC.todo_list
+      (id, title)
+    SELECT to_char(current_date, 'YYMMDD') || '-' ||
+           lpad((coalesce(max(substring(tl.id, 8, 10)::int), 0) + 1)::text, 3, '0'),
+           #{title}
+    FROM PUBLIC.todo_list as tl
+    WHERE substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
+    RETURNING id
+  </select>
+  <select id="update" resultType="string">
     UPDATE PUBLIC.todo_list
     <set>
       <if test="payload.title != null">title = #{payload.title}</if>
     </set>
-    WHERE id = #{entityId}
-  </update>
+    WHERE id = #{id}
+    RETURNING id
+  </select>
+  <select id="updateAll" resultType="string">
+    UPDATE PUBLIC.todo_list
+    <set>
+      <if test="payload.title != null">title = #{payload.title}</if>
+    </set>
+    <where>
+      <if test="specification.id != null">id = #{specification.id}</if>
+      <if test="specification.titleLike != null">AND title like #{specification.titleLike}</if>
+    </where>
+    RETURNING id
+  </select>
   <insert id="recordHistory">
     insert into PUBLIC.todo_list_history(todo_list_id, history_sequence_no, todo_list_title)
     select tl.id,
@@ -29,4 +41,24 @@
     from PUBLIC.todo_list as tl
     where tl.id = #{entityId}
   </insert>
+  <insert id="recordHistories" parameterType="java.util.List">
+    insert into PUBLIC.todo_list_history(todo_list_id, history_sequence_no, todo_list_title)
+    select tl.id,
+    (select coalesce(max(tlh.history_sequence_no) + 1, 0)
+    from PUBLIC.todo_list_history tlh
+    where tlh.todo_list_id = tl.id),
+    tl.title
+    from PUBLIC.todo_list as tl
+    <where>
+      <choose>
+        <when test="entityIds.size != 0">
+          tl.id in
+          <foreach close=")" collection="entityIds" item="entityId" open="(" separator=",">
+            #{entityId}
+          </foreach>
+        </when>
+      </choose>
+    </where>
+  </insert>
+
 </mapper>

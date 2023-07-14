@@ -2,20 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mynghn.persistenceaop.mapper.TodoItemMapper">
-  <insert id="insert" parameterType="mynghn.persistenceaop.entity.TodoItem">
-    <selectKey keyProperty="id" order="BEFORE" resultType="string">
-      select (to_char(current_date, 'YYMMDD') || '-' || (lpad(coalesce(max(substring(ti.id, 8,
-      10)::int), 0) + 1::text, 3, '0'))) as new_id
-      from PUBLIC.todo_item as ti
-      where substring(ti.id, 1, 6) = to_char(current_date, 'YYMMDD')
-    </selectKey>
-    insert into PUBLIC.todo_item (id, title, description, due_date, todo_list_id)
-    values (
-    #{id},
-    #{title},
-    #{description},
-    #{dueDate},
-    #{todoListId}
-    )
-  </insert>
+  <select id="insert" parameterType="mynghn.persistenceaop.entity.TodoItem" resultType="string">
+    INSERT INTO PUBLIC.todo_item (id, title, description, due_date, todo_list_id)
+    SELECT to_char(current_date, 'YYMMDD') || '-' ||
+           lpad((coalesce(max(substring(ti.id, 8, 10)::int), 0) + 1)::text, 3, '0'),
+           #{title},
+           #{description},
+           #{dueDate},
+           #{todoListId}
+    FROM PUBLIC.todo_item as ti
+    WHERE substring(ti.id, 1, 6) = to_char(current_date, 'YYMMDD')
+    RETURNING id
+  </select>
 </mapper>

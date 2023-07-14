@@ -8,23 +8,26 @@ import mynghn.persistenceaop.dto.TodoItemCreateRequestDto;
 import mynghn.persistenceaop.dto.TodoListCreateRequestDto;
 import mynghn.persistenceaop.dto.TodoListCreateResponseDto;
 import mynghn.persistenceaop.entity.TodoItemHistory;
+import mynghn.persistenceaop.entity.TodoList;
 import mynghn.persistenceaop.entity.TodoListHistory;
+import mynghn.persistenceaop.entity.TodoListSpec;
 import mynghn.persistenceaop.mapper.HistoriesMapper;
+import mynghn.persistenceaop.mapper.TodoListMapper;
 import mynghn.persistenceaop.service.TodoListService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
 @ActiveProfiles("test")
-@AutoConfigureTestDatabase
 class PersistenceAspectTest {
 
     @Autowired
     private TodoListService todoListService;
+    @Autowired
+    private TodoListMapper todoListMapper;
 
     @Autowired
     private HistoriesMapper historiesMapper;
@@ -101,5 +104,33 @@ class PersistenceAspectTest {
 
         TodoListHistory actualHistory = historiesMapper.getTodoListHistory(todoListId, 0);
         assertThat(actualHistory.getTodoListTitle()).isEqualTo(newTitle);
+    }
+
+    @Test
+    @Sql({"/test-schema.sql", "/test-data.sql"})
+    public void recordMultipleEntityHistoriesAdviceWorksOnUpdateAll() {
+        // Arrange
+        int rowsToBeAffected = 2;
+        String todoList1Id = "230712-000";
+        String todoList2Id = "230713-000";
+
+        String titleLikeQ = "Test%";
+        TodoListSpec filter = TodoListSpec.builder().titleLike(titleLikeQ).build();
+        String newTitle = "updated title";
+        TodoList updatePayload = TodoList.builder().title(newTitle).build();
+
+        // Act
+        todoListMapper.updateAll(filter, updatePayload);
+
+        // Assert
+        assertThat(historiesMapper.countAllTodoListHistories()).isEqualTo(rowsToBeAffected);
+
+        TodoListHistory actualHistory1 = historiesMapper.getTodoListHistory(todoList1Id, 0);
+        assertThat(actualHistory1).isNotNull();
+        assertThat(actualHistory1.getTodoListTitle()).isEqualTo(newTitle);
+
+        TodoListHistory actualHistory2 = historiesMapper.getTodoListHistory(todoList2Id, 0);
+        assertThat(actualHistory2).isNotNull();
+        assertThat(actualHistory2.getTodoListTitle()).isEqualTo(newTitle);
     }
 }

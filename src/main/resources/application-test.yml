@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:local;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
-    driver-class-name: org.h2.Driver
-    username: sa
+    url: jdbc:postgresql://localhost:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: tester
     password:
 logging:
   level:

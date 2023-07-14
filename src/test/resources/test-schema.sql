@@ -39,10 +39,3 @@ CREATE TABLE IF NOT EXISTS PUBLIC.todo_item_history
     PRIMARY KEY (todo_item_id, history_sequence_no),
     FOREIGN KEY (todo_item_id) REFERENCES PUBLIC.todo_item (id)
 );
-
-
-
-
-
-
-
