@@ -94,7 +94,14 @@
 >    }
 >    ```
 > 3. After data injection, session is terminated by assigning `null` to `session` member variable
-> 
+>    ```java
+>    private void endSession() {
+>        if (session == null) {
+>            throw new IllegalCallerException(...);
+>        }
+>        session = null;
+>    }
+>    ```
 > So in effect, `session` variable has innate lifecycle of `AuditingAspect` instance scope, but it's managed to have lifecycle of each advice execution scope.
 > 
 > Another AOP advice providing `AdviceSession` instance to other advices might be a solution to this `session` variable lifecycle inconsistency issue.
