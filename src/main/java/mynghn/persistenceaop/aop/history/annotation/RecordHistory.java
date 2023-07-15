@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.annotations;
+package mynghn.persistenceaop.aop.history.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

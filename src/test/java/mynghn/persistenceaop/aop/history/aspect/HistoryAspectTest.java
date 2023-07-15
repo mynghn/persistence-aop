@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.aspect;
+package mynghn.persistenceaop.aop.history.aspect;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -22,7 +22,7 @@ import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class PersistenceAspectTest {
+class HistoryAspectTest {
 
     @Autowired
     private TodoListService todoListService;

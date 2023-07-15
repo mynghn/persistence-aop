@@ -1,9 +1,9 @@
-package mynghn.persistenceaop.aop.aspect;
+package mynghn.persistenceaop.aop.history.aspect;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.aop.annotations.RecordHistory;
+import mynghn.persistenceaop.aop.history.annotation.RecordHistory;
 import mynghn.persistenceaop.mapper.base.GenericMapper;
 import mynghn.persistenceaop.mapper.base.HistoryMapper;
 import org.aspectj.lang.JoinPoint;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Aspect
 @Component
 @RequiredArgsConstructor
-public class PersistenceAspect {
+public class HistoryAspect {
 
     private final ApplicationContext applicationContext;
 
@@ -82,7 +82,7 @@ public class PersistenceAspect {
             RecordHistory annotation,
             Object updated
     ) {
-        log.debug("Advice starting on Join point: {}", joinPoint);
+        log.debug("Advice starting on join point: {}", joinPoint);
         GenericMapper<E, ID> joinPointMapper = getTargetGenericMapper(joinPoint);
 
         HistoryMapper<E, ID> historyMapper = getHistoryMapperByType(
