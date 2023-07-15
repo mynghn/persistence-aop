@@ -1,6 +1,7 @@
 package mynghn.persistenceaop.entity;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,4 +20,12 @@ public class TodoItemHistory {
     private LocalDate todoItemDueDate;
 
     private String todoItemTodoListId;
+
+    private Boolean isDeleted;
+
+    private LocalDateTime createdAt;
+    private String createdBy;
+
+    private LocalDateTime lastModifiedAt;
+    private String lastModifiedBy;
 }
