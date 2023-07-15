@@ -8,7 +8,7 @@ import mynghn.persistenceaop.entity.base.SoftDeleteEntity;
 import mynghn.persistenceaop.entity.base.UpdateStamp;
 import org.apache.ibatis.annotations.Param;
 
-public interface CrudMapper<E, ID> extends GenericMapper<E, ID> {
+public interface CrudMapper<E, ID> extends EntityMapper<E, ID> {
 
     @Audit
     ID insert(@InjectStamp(stampTypes={CreateStamp.class, UpdateStamp.class, SoftDeleteEntity.class}) E payload);

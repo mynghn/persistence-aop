@@ -1,6 +1,6 @@
 package mynghn.persistenceaop.mapper.base;
 
-public interface GenericMapper<E, ID> {
+public interface EntityMapper<E, ID> {
 
     Class<E> getEntityType();
 

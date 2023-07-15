@@ -4,12 +4,11 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mynghn.persistenceaop.aop.history.annotation.RecordHistory;
-import mynghn.persistenceaop.mapper.base.GenericMapper;
+import mynghn.persistenceaop.mapper.base.EntityMapper;
 import mynghn.persistenceaop.mapper.base.HistoryMapper;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.ResolvableType;
 import org.springframework.stereotype.Component;
@@ -22,15 +21,15 @@ public class HistoryAspect {
 
     private final ApplicationContext applicationContext;
 
-    private static <E, ID> GenericMapper<E, ID> getTargetGenericMapper(JoinPoint joinPoint) {
+    private static <E, ID> EntityMapper<E, ID> getTargetEntityMapper(JoinPoint joinPoint) {
         Object joinPointTarget = joinPoint.getTarget();
-        if (!(joinPointTarget instanceof GenericMapper<?, ?>)) {
+        if (!(joinPointTarget instanceof EntityMapper<?, ?>)) {
             throw new IllegalStateException(
-                    "Join point target of non GenericMapper interface encountered."
+                    "Join point target of non EntityMapper interface encountered."
             );
         }
         @SuppressWarnings("unchecked")
-        GenericMapper<E, ID> joinPointMapper = (GenericMapper<E, ID>) joinPointTarget;
+        EntityMapper<E, ID> joinPointMapper = (EntityMapper<E, ID>) joinPointTarget;
         return joinPointMapper;
     }
 
@@ -72,18 +71,14 @@ public class HistoryAspect {
         }
     }
 
-    @Pointcut("target(mynghn.persistenceaop.mapper.base.GenericMapper)")
-    private void targetGenericMapper() {
-    }
-
-    @AfterReturning(pointcut = "targetGenericMapper() && @annotation(annotation)", returning = "updated")
+    @AfterReturning(pointcut = "@annotation(annotation)", returning = "updated")
     public <E, ID> void recordEntityHistory(
             JoinPoint joinPoint,
             RecordHistory annotation,
             Object updated
     ) {
         log.debug("Advice starting on join point: {}", joinPoint);
-        GenericMapper<E, ID> joinPointMapper = getTargetGenericMapper(joinPoint);
+        EntityMapper<E, ID> joinPointMapper = getTargetEntityMapper(joinPoint);
 
         HistoryMapper<E, ID> historyMapper = getHistoryMapperByType(
                 joinPointMapper.getEntityType(), joinPointMapper.getEntityIdType()
