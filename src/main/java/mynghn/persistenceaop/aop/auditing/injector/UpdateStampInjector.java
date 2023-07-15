@@ -3,13 +3,12 @@ package mynghn.persistenceaop.aop.auditing.injector;
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import mynghn.persistenceaop.aop.auditing.aspect.AuditingAspect;
-import mynghn.persistenceaop.aop.auditing.injector.base.StampInjector;
 import mynghn.persistenceaop.aop.auditing.injector.base.StampInjectorWithContext;
 import mynghn.persistenceaop.aop.auditing.session.AdviceSession;
 import mynghn.persistenceaop.entity.base.UpdateStamp;
 
 @Slf4j
-public class UpdateStampInjector extends StampInjectorWithContext implements StampInjector {
+public class UpdateStampInjector extends StampInjectorWithContext {
 
     public UpdateStampInjector(AuditingAspect context) {
         super(context);
