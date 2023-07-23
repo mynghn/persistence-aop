@@ -2,59 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mynghn.persistenceaop.mapper.TodoListMapper">
-  <select
-    id="insert"
-    parameterType="mynghn.persistenceaop.entity.TodoList"
-    resultType="mynghn.persistenceaop.entity.TodoList"
-  >
-    INSERT INTO PUBLIC.todo_list
-    (id,
-     title,
-     is_deleted,
-     created_at,
-     created_by,
-     last_modified_at,
-     last_modified_by)
-    SELECT to_char(current_date, 'YYMMDD') || '-' ||
-           lpad((coalesce(max(substring(tl.id, 8, 10)::int), 0) + 1)::text, 3, '0'),
-           #{title},
-           #{isDeleted},
-           #{createdAt},
-           #{createdBy},
-           #{lastModifiedAt},
-           #{lastModifiedBy}
-    FROM PUBLIC.todo_list as tl
-    WHERE substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
-    RETURNING *
-  </select>
-  <select id="select" resultType="mynghn.persistenceaop.entity.TodoList">
-    SELECT *
-    FROM public.todo_list
-    where id = #{id}
-  </select>
-  <select id="update" resultType="mynghn.persistenceaop.entity.TodoList">
-    UPDATE PUBLIC.todo_list
-    SET
-    <if test="payload.title != null">title = #{payload.title},</if>
-    <if test="payload.isDeleted != null">is_deleted = #{payload.isDeleted},</if>
-    last_modified_at = #{payload.lastModifiedAt},
-    last_modified_by = #{payload.lastModifiedBy}
-    WHERE id = #{id}
-    RETURNING *
-  </select>
-  <select id="updateAll" resultType="mynghn.persistenceaop.entity.TodoList">
-    UPDATE PUBLIC.todo_list
-    SET
-    <if test="payload.title != null">title = #{payload.title},</if>
-    <if test="payload.isDeleted != null">is_deleted = #{payload.isDeleted},</if>
-    last_modified_at = #{payload.lastModifiedAt},
-    last_modified_by = #{payload.lastModifiedBy}
-    <where>
-      <if test="specification.id != null">id = #{specification.id}</if>
-      <if test="specification.titleLike != null">AND title like #{specification.titleLike}</if>
-    </where>
-    RETURNING *
-  </select>
   <insert id="recordHistory">
     insert into PUBLIC.todo_list_history
     (todo_list_id,
@@ -96,4 +43,66 @@
       #{entity.lastModifiedAt}, #{entity.lastModifiedBy})
     </foreach>
   </insert>
+  <select id="update" resultType="mynghn.persistenceaop.entity.TodoList">
+    UPDATE PUBLIC.todo_list
+    SET
+    <if test="payload.title != null">title = #{payload.title},</if>
+    <if test="payload.isDeleted != null">is_deleted = #{payload.isDeleted},</if>
+    last_modified_at = #{payload.lastModifiedAt},
+    last_modified_by = #{payload.lastModifiedBy}
+    WHERE id = #{id}
+    RETURNING *
+  </select>
+  <select id="updateAll" resultType="mynghn.persistenceaop.entity.TodoList">
+    UPDATE PUBLIC.todo_list
+    SET
+    <if test="payload.title != null">title = #{payload.title},</if>
+    <if test="payload.isDeleted != null">is_deleted = #{payload.isDeleted},</if>
+    last_modified_at = #{payload.lastModifiedAt},
+    last_modified_by = #{payload.lastModifiedBy}
+    <choose>
+      <when
+        test="specification.id != null or specification.titleLike != null"
+      >
+        <where>
+          <if test="specification.id != null">id = #{specification.id}</if>
+          <if test="specification.titleLike != null">AND title like #{specification.titleLike}</if>
+        </where>
+      </when>
+      <otherwise>
+        WHERE 1 = 0
+      </otherwise>
+    </choose>
+    RETURNING *
+  </select>
+  <select
+    id="insert"
+    parameterType="mynghn.persistenceaop.entity.TodoList"
+    resultType="mynghn.persistenceaop.entity.TodoList"
+  >
+    INSERT INTO PUBLIC.todo_list
+    (id,
+     title,
+     is_deleted,
+     created_at,
+     created_by,
+     last_modified_at,
+     last_modified_by)
+    SELECT to_char(current_date, 'YYMMDD') || '-' ||
+           lpad((coalesce(max(substring(tl.id, 8, 10)::int), 0) + 1)::text, 3, '0'),
+           #{title},
+           #{isDeleted},
+           #{createdAt},
+           #{createdBy},
+           #{lastModifiedAt},
+           #{lastModifiedBy}
+    FROM PUBLIC.todo_list as tl
+    WHERE substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
+    RETURNING *
+  </select>
+  <select id="select" resultType="mynghn.persistenceaop.entity.TodoList">
+    SELECT *
+    FROM public.todo_list
+    where id = #{id}
+  </select>
 </mapper>
