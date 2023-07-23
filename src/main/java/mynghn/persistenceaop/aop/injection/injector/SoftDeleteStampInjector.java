@@ -15,7 +15,7 @@ public class SoftDeleteStampInjector implements StampInjector {
     @Override
     public void injectStamp(Object payload) {
         if (!(payload instanceof SoftDeleteEntity stampPayload)) {
-            throw new IllegalStateException(String.format(
+            throw new IllegalArgumentException(String.format(
                     "Soft delete stamp injected payload type '%s' is not assignable to SoftDeleteEntity",
                     payload.getClass().getName()
             ));

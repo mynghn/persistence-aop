@@ -1,7 +1,9 @@
 DROP TABLE IF EXISTS PUBLIC.todo_item_history;
 DROP TABLE IF EXISTS PUBLIC.todo_item;
+DROP TABLE IF EXISTS PUBLIC.todo_list_history_sequence;
 DROP TABLE IF EXISTS PUBLIC.todo_list_history;
 DROP TABLE IF EXISTS PUBLIC.todo_list;
+DROP TABLE IF EXISTS PUBLIC.todo_list_id_sequence;
 
 CREATE TABLE PUBLIC.todo_list
 (
@@ -14,6 +16,12 @@ CREATE TABLE PUBLIC.todo_list
     last_modified_by varchar(20) NOT NULL default 'tester'
 );
 
+CREATE TABLE PUBLIC.todo_list_id_sequence
+(
+    date        date    NOT NULL,
+    sequence_no integer NOT NULL,
+    PRIMARY KEY (date, sequence_no)
+);
 
 
 CREATE TABLE PUBLIC.todo_list_history
@@ -27,6 +35,14 @@ CREATE TABLE PUBLIC.todo_list_history
     last_modified_at    timestamp   NOT NULL default current_timestamp,
     last_modified_by    varchar(20) NOT NULL default 'tester',
     PRIMARY KEY (todo_list_id, history_sequence_no),
+    FOREIGN KEY (todo_list_id) REFERENCES PUBLIC.todo_list (id)
+);
+
+CREATE TABLE PUBLIC.todo_list_history_sequence
+(
+    todo_list_id char(10) NOT NULL,
+    sequence_no  integer  NOT NULL,
+    PRIMARY KEY (todo_list_id, sequence_no),
     FOREIGN KEY (todo_list_id) REFERENCES PUBLIC.todo_list (id)
 );
 

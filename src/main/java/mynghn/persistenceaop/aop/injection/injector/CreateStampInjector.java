@@ -2,7 +2,6 @@ package mynghn.persistenceaop.aop.injection.injector;
 
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.aop.injection.aspect.InjectionAspect;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjectorWithContext;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
 import mynghn.persistenceaop.entity.base.CreateStamp;
@@ -10,8 +9,8 @@ import mynghn.persistenceaop.entity.base.CreateStamp;
 @Slf4j
 public class CreateStampInjector extends StampInjectorWithContext {
 
-    public CreateStampInjector(InjectionAspect context) {
-        super(context);
+    public CreateStampInjector(ThreadLocal<AdviceSession> sessionContainer) {
+        super(sessionContainer);
     }
 
     @Override
@@ -22,17 +21,13 @@ public class CreateStampInjector extends StampInjectorWithContext {
     @Override
     public void injectStamp(Object payload) {
         if (!(payload instanceof CreateStamp stampPayload)) {
-            throw new IllegalStateException(String.format(
+            throw new IllegalArgumentException(String.format(
                     "Create stamp injected payload type '%s' is not assignable to CreateStamp",
                     payload.getClass().getName()
             ));
         }
 
-        AdviceSession currSession = context.getSession();
-        if (currSession == null) {
-            throw new IllegalStateException("InjectStamp advice session is missing.");
-        }
-
+        AdviceSession currSession = getSession();
         if (stampPayload.getCreatedAt() == null) {
             LocalDateTime currSessionTime = currSession.getTime();
             stampPayload.setCreatedAt(currSessionTime);

@@ -27,16 +27,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class InjectionAspect {
 
-    private final List<StampInjector> injectors;
-    private AdviceSession session;
+    private static final ThreadLocal<AdviceSession> session = new ThreadLocal<>();
 
-    public InjectionAspect() {
-        injectors = List.of(
-                new CreateStampInjector(this),
-                new UpdateStampInjector(this),
-                new SoftDeleteStampInjector()
-        );
-    }
+    private static final List<StampInjector> injectors = List.of(
+            new CreateStampInjector(session),
+            new UpdateStampInjector(session),
+            new SoftDeleteStampInjector()
+    );
 
     private static Stream<Pair<Injected, Object>> getAnnotatedTargetArgs(JoinPoint joinPoint) {
         Annotation[][] paramAnnotationsArr = ((MethodSignature) joinPoint.getSignature()).getMethod()
@@ -54,29 +51,29 @@ public class InjectionAspect {
                 ));
     }
 
-    public AdviceSession getSession() {
-        return session;
-    }
-
     private void startSession() {
-        if (session != null) {
-            throw new IllegalCallerException("Instance scope advice session is already in use.");
+        if (session.get() != null) {
+            throw new IllegalStateException("Instance scope advice session is already in use.");
         }
-        session = AdviceSession.builder()
+        AdviceSession newSession = AdviceSession.builder()
                 .time(LocalDateTime.now())
                 // FIXME: replace w/ real data in practice
                 // e.g. get user info from current HttpSession obj
                 .username(RandomStringUtils.random(10, true, true))
                 .build();
+        session.set(newSession);
+        log.debug("Advice session started: '{}'", newSession);
     }
 
     private void endSession() {
-        if (session == null) {
+        AdviceSession currSession = session.get();
+        if (currSession == null) {
             throw new IllegalStateException(
                     "Advice session does not exist. Start a session first, or illegal session termination has occurred."
             );
         }
-        session = null;
+        session.remove();
+        log.debug("Advice session terminated. ({})", currSession);
     }
 
     @Before("@annotation(mynghn.persistenceaop.aop.injection.annotation.InjectStamp)")
@@ -87,7 +84,6 @@ public class InjectionAspect {
 
         // Start session
         startSession();
-        log.debug("Started advice session: {}", session);
 
         annotatedArgTargets.forEach(
                 pair -> {
@@ -99,7 +95,6 @@ public class InjectionAspect {
         );
 
         // End session
-        log.debug("Advice execution finished. Terminating advice session...");
         endSession();
     }
 

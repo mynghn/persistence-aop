@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import lombok.extern.slf4j.Slf4j;
 import mynghn.persistenceaop.entity.TodoList;
 import mynghn.persistenceaop.entity.TodoListSpec;
 import mynghn.persistenceaop.mapper.TodoListMapper;
@@ -13,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
+@Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
 class InjectionAspectTest {
@@ -90,8 +96,42 @@ class InjectionAspectTest {
         assertThat(testPayload.getLastModifiedAt()).isNotNull();
         assertThat(testPayload.getLastModifiedBy()).isNotNull();
         todoListsUpdated.forEach(todoListUpdated -> {
-            assertThat(todoListUpdated.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
-            assertThat(todoListUpdated.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
+            assertThat(todoListUpdated.getLastModifiedAt()).isEqualTo(
+                    testPayload.getLastModifiedAt());
+            assertThat(todoListUpdated.getLastModifiedBy()).isEqualTo(
+                    testPayload.getLastModifiedBy());
         });
+    }
+
+    @Test
+    @Sql("/test-schema.sql")
+    public void createStampInjectionInMultiThreadEnvWorks() throws InterruptedException {
+        // Arrange
+        int maxTodoListPerDay = 100;
+        CountDownLatch latch = new CountDownLatch(maxTodoListPerDay);
+        ExecutorService executorService = Executors.newFixedThreadPool(maxTodoListPerDay);
+
+        AtomicInteger successCnt = new AtomicInteger();
+
+        // Act
+        for (int i = 0; i < maxTodoListPerDay; i++) {
+            int finalI = i;
+            executorService.execute(() -> {
+                try {
+                    TodoList insertVo = TodoList.builder()
+                            .title(String.format("Test TodoList %d", finalI))
+                            .build();
+                    TodoList todoListInserted = todoListMapper.insert(insertVo);
+                    log.debug("TodoList inserted: {}", todoListInserted);
+                    successCnt.getAndIncrement();
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+
+        // Assert
+        assertThat(successCnt.get()).isEqualTo(maxTodoListPerDay);
     }
 }

@@ -40,17 +40,19 @@ public class HistoryAspect {
             return;
         }
 
-        int historiesRecorded = historyMapper.recordHistory(updatedEntity);
+        historyMapper.recordHistory(updatedEntity);
 
-        if (historiesRecorded == 0) {
-            throw new IllegalStateException("No histories recorded.");
-        }
-        if (historiesRecorded > 1) {
-            throw new IllegalStateException(String.format(
-                    "Too many histories recorded: %d. Should have recorded only 1.",
-                    historiesRecorded
-            ));
-        }
+//        int historiesRecorded = historyMapper.recordHistory(updatedEntity);
+
+// if (historiesRecorded == 0) {
+//     throw new IllegalStateException("No histories recorded.");
+// }
+//        if (historiesRecorded > 1) {
+//            throw new IllegalStateException(String.format(
+//                    "Too many histories recorded: %d. Should have recorded only 1.",
+//                    historiesRecorded
+//            ));
+//        }
     }
 
     private static <E> void recordManyHistories(
@@ -61,14 +63,16 @@ public class HistoryAspect {
             return;
         }
 
-        int historiesRecorded = historyMapper.recordHistories(updatedEntities);
+        historyMapper.recordHistories(updatedEntities);
 
-        if (historiesRecorded != updatedEntities.size()) {
-            throw new IllegalStateException(String.format(
-                    "Updated entities(%d) and recorded histories(%d) count do not match.",
-                    updatedEntities.size(), historiesRecorded
-            ));
-        }
+//        int historiesRecorded = historyMapper.recordHistories(updatedEntities);
+
+//        if (historiesRecorded != updatedEntities.size()) {
+//            throw new IllegalStateException(String.format(
+//                    "Updated entities(%d) and recorded histories(%d) count do not match.",
+//                    updatedEntities.size(), historiesRecorded
+//            ));
+//        }
     }
 
     @AfterReturning(pointcut = "@annotation(annotation)", returning = "updated")

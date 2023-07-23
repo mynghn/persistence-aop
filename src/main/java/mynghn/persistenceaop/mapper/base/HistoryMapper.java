@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface HistoryMapper<E> {
 
-    int recordHistory(E entity);
+    void recordHistory(E entity);
 
-    int recordHistories(List<E> entities);
+    void recordHistories(List<E> entities);
 }
