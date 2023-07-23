@@ -2,7 +2,7 @@
 
 1. Annotate insert/update Mapper methods w/ [`@RecordHistory`](./annotation/RecordHistory.java) to mark as point cut target.
 2. Advice [`HistoryAspect.recordEntityHistory()`](./aspect/HistoryAspect.java) is called _@AfterReturning_ `@RecordHistory` annotated method execution result.
-3. Extract AOP target instance from `JoinPoint` object. It should be an instance of [`EntityMapper<E>`](../../mapper/base/EntityMapper.java). This is required for further [`HistoryMapper<E, ID>`](../../mapper/base/HistoryMapper.java) search by entity(table) type.
+3. Extract AOP target instance from `JoinPoint` object. It should be an instance of [`EntityMapper<E>`](../../mapper/base/EntityMapper.java). This is required for further [`HistoryMapper<E>`](../../mapper/base/HistoryMapper.java) search by entity(table) type.
    - Each entity(table) type `E` has corresponding `EntityMapper<E>` and `HistoryMapper<E>`.
 4. Find corresponding `HistoryMapper` bean from Spring `ApplicationContext` using generic type(`E`) of previously seen `EntityMapper<E>` which is current join point target.
    - Reflective approach w/ `ApplicationContext.getBeanNamesForType()` and `ResolvableType` is applied.
@@ -18,7 +18,7 @@
 > 
 > In particular, `HistoryMapper.recordHistories()` receives list of entities to record multiple histories, and this interface is for batch update methods like `CrudMapper.updateAll(S spec, P payload)`.
 > ```java
-> recordHistories(List<ID> entityIds);
+> recordHistories(List<E> entities);
 > ```
 > 
 > Such methods may receive parameter `spec` which determines(filters) updating rows. And the problem here is, if a column appeared in the specification gets updated, `REPEATABLE READ` with the same specification after that update is not guaranteed. 
@@ -38,7 +38,7 @@
 > 
 > In particular stack of MyBatis & PostgreSQL, this can be achieved by using `RETURNING *` clause of PostgreSQL right after insert/update statement and placing the SQL script inside `<select>` tag in MyBatis xml mapper file.
 > ```xml
-> <select id="updateAll" resultType="string">
+> <select id="updateAll" resultType="entityType">
 >     UPDATE ...
 >     SET ...
 >     WHERE ...
