@@ -7,20 +7,16 @@
                                          todo_item_description, todo_item_due_date,
                                          todo_item_todo_list_id, is_deleted, created_at, created_by,
                                          last_modified_at, last_modified_by)
-    select ti.id,
-           (select coalesce(max(tih.history_sequence_no) + 1, 0)
-            from PUBLIC.todo_item_history tih
-            where tih.todo_item_id = #{entityId}),
-           ti.title,
-           ti.description,
-           ti.due_date,
-           ti.todo_list_id,
-           ti.is_deleted,
-           ti.created_at,
-           ti.created_by,
-           ti.last_modified_at,
-           ti.last_modified_by
-    from PUBLIC.todo_item as ti
-    where ti.id = #{entityId}
+    values (#{id},
+            (select coalesce(max(tih.history_sequence_no) + 1, 0)
+             from PUBLIC.todo_item_history tih
+             where tih.todo_item_id = #{id}),
+            #{title},
+            #{description},
+            #{dueDate},
+            #{todoListId},
+            #{isDeleted},
+            #{createdAt}, #{createdBy},
+            #{lastModifiedAt}, #{lastModifiedBy})
   </insert>
 </mapper>

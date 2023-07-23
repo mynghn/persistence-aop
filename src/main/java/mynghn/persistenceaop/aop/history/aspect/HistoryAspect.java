@@ -21,26 +21,26 @@ public class HistoryAspect {
 
     private final ApplicationContext applicationContext;
 
-    private static <E, ID> EntityMapper<E, ID> getTargetEntityMapper(JoinPoint joinPoint) {
+    private static <E> EntityMapper<E> getTargetEntityMapper(JoinPoint joinPoint) {
         Object joinPointTarget = joinPoint.getTarget();
-        if (!(joinPointTarget instanceof EntityMapper<?, ?>)) {
+        if (!(joinPointTarget instanceof EntityMapper<?>)) {
             throw new IllegalStateException(
                     "Join point target of non EntityMapper interface encountered."
             );
         }
         @SuppressWarnings("unchecked")
-        EntityMapper<E, ID> joinPointMapper = (EntityMapper<E, ID>) joinPointTarget;
+        EntityMapper<E> joinPointMapper = (EntityMapper<E>) joinPointTarget;
         return joinPointMapper;
     }
 
-    private static <E, ID> void recordOneHistory(
-            HistoryMapper<E, ID> historyMapper, ID updatedEntityId) {
-        if (updatedEntityId == null) {
+    private static <E> void recordOneHistory(
+            HistoryMapper<E> historyMapper, E updatedEntity) {
+        if (updatedEntity == null) {
             log.debug("0 entities updated. Skipping advice...");
             return;
         }
 
-        int historiesRecorded = historyMapper.recordHistory(updatedEntityId);
+        int historiesRecorded = historyMapper.recordHistory(updatedEntity);
 
         if (historiesRecorded == 0) {
             throw new IllegalStateException("No histories recorded.");
@@ -53,36 +53,34 @@ public class HistoryAspect {
         }
     }
 
-    private static <E, ID> void recordManyHistories(
-            HistoryMapper<E, ID> historyMapper, List<ID> updatedEntityIds
+    private static <E> void recordManyHistories(
+            HistoryMapper<E> historyMapper, List<E> updatedEntities
     ) {
-        if (updatedEntityIds.size() == 0) {
+        if (updatedEntities.size() == 0) {
             log.debug("0 entities updated. Skipping advice...");
             return;
         }
 
-        int historiesRecorded = historyMapper.recordHistories(updatedEntityIds);
+        int historiesRecorded = historyMapper.recordHistories(updatedEntities);
 
-        if (historiesRecorded != updatedEntityIds.size()) {
+        if (historiesRecorded != updatedEntities.size()) {
             throw new IllegalStateException(String.format(
                     "Updated entities(%d) and recorded histories(%d) count do not match.",
-                    updatedEntityIds.size(), historiesRecorded
+                    updatedEntities.size(), historiesRecorded
             ));
         }
     }
 
     @AfterReturning(pointcut = "@annotation(annotation)", returning = "updated")
-    public <E, ID> void recordEntityHistory(
+    public <E> void recordEntityHistory(
             JoinPoint joinPoint,
             RecordHistory annotation,
             Object updated
     ) {
         log.debug("Advice starting on join point: {}", joinPoint);
-        EntityMapper<E, ID> joinPointMapper = getTargetEntityMapper(joinPoint);
+        EntityMapper<E> joinPointMapper = getTargetEntityMapper(joinPoint);
 
-        HistoryMapper<E, ID> historyMapper = getHistoryMapperByType(
-                joinPointMapper.getEntityType(), joinPointMapper.getEntityIdType()
-        );
+        HistoryMapper<E> historyMapper = getHistoryMapperByType(joinPointMapper.getEntityType());
 
         if (annotation.many()) {
             if (!(updated instanceof List<?>)) {
@@ -90,20 +88,17 @@ public class HistoryAspect {
                         "@RecordHistory(many=true) annotated method should return List<ID> type."
                 );
             }
-            @SuppressWarnings("unchecked") List<ID> updatedEntityIds = (List<ID>) updated;
-            recordManyHistories(historyMapper, updatedEntityIds);
+            @SuppressWarnings("unchecked") List<E> updatedEntities = (List<E>) updated;
+            recordManyHistories(historyMapper, updatedEntities);
         } else {
-            @SuppressWarnings("unchecked") ID updatedEntityId = (ID) updated;
-            recordOneHistory(historyMapper, updatedEntityId);
+            @SuppressWarnings("unchecked") E updatedEntity = (E) updated;
+            recordOneHistory(historyMapper, updatedEntity);
         }
     }
 
-    private <E, ID> HistoryMapper<E, ID> getHistoryMapperByType(
-            Class<E> entityType,
-            Class<ID> entityIdType
-    ) {
+    private <E> HistoryMapper<E> getHistoryMapperByType(Class<E> entityType) {
         String[] beanNames = applicationContext.getBeanNamesForType(
-                ResolvableType.forClassWithGenerics(HistoryMapper.class, entityType, entityIdType));
+                ResolvableType.forClassWithGenerics(HistoryMapper.class, entityType));
         if (beanNames.length == 0) {
             throw new IllegalStateException(String.format(
                     "HistoryMapper bean for Entity '%s' not found.",
@@ -119,7 +114,7 @@ public class HistoryAspect {
         String beanName = beanNames[0];
 
         @SuppressWarnings("unchecked")
-        HistoryMapper<E, ID> historyMapper = applicationContext.getBean(beanName,
+        HistoryMapper<E> historyMapper = applicationContext.getBean(beanName,
                 HistoryMapper.class);
 
         return historyMapper;

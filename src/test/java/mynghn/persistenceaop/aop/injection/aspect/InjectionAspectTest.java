@@ -27,7 +27,7 @@ class InjectionAspectTest {
         TodoList testPayload = TodoList.builder().title("Test TodoList").build();
 
         // Act
-        String idInserted = todoListMapper.insert(testPayload);
+        TodoList todoListInserted = todoListMapper.insert(testPayload);
 
         // Assert
         assertThat(testPayload.getIsDeleted()).isFalse();
@@ -40,12 +40,11 @@ class InjectionAspectTest {
         assertThat(usernameInjected).isNotNull();
         assertThat(testPayload.getLastModifiedBy()).isEqualTo(usernameInjected);
 
-        TodoList todoListSelected = todoListMapper.select(idInserted);
-        assertThat(todoListSelected.getIsDeleted()).isEqualTo(testPayload.getIsDeleted());
-        assertThat(todoListSelected.getCreatedAt()).isEqualTo(testPayload.getCreatedAt());
-        assertThat(todoListSelected.getCreatedBy()).isEqualTo(testPayload.getCreatedBy());
-        assertThat(todoListSelected.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
-        assertThat(todoListSelected.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
+        assertThat(todoListInserted.getIsDeleted()).isEqualTo(testPayload.getIsDeleted());
+        assertThat(todoListInserted.getCreatedAt()).isEqualTo(testPayload.getCreatedAt());
+        assertThat(todoListInserted.getCreatedBy()).isEqualTo(testPayload.getCreatedBy());
+        assertThat(todoListInserted.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
+        assertThat(todoListInserted.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
     }
 
     @Test
@@ -80,7 +79,7 @@ class InjectionAspectTest {
         TodoList testPayload = TodoList.builder().title("Test TodoList Updated").build();
 
         // Act
-        List<String> updatedIds = todoListMapper.updateAll(filter, testPayload);
+        List<TodoList> todoListsUpdated = todoListMapper.updateAll(filter, testPayload);
 
         // Assert
         assertThat(testPayload.getIsDeleted()).isNull();
@@ -90,10 +89,9 @@ class InjectionAspectTest {
 
         assertThat(testPayload.getLastModifiedAt()).isNotNull();
         assertThat(testPayload.getLastModifiedBy()).isNotNull();
-        updatedIds.forEach(id -> {
-            TodoList todoListSelected = todoListMapper.select(id);
-            assertThat(todoListSelected.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
-            assertThat(todoListSelected.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
+        todoListsUpdated.forEach(todoListUpdated -> {
+            assertThat(todoListUpdated.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
+            assertThat(todoListUpdated.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
         });
     }
 }

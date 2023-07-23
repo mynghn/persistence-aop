@@ -8,23 +8,23 @@ import mynghn.persistenceaop.entity.base.SoftDeleteEntity;
 import mynghn.persistenceaop.entity.base.UpdateStamp;
 import org.apache.ibatis.annotations.Param;
 
-public interface CrudMapper<E, ID> extends EntityMapper<E, ID> {
+public interface CrudMapper<E, ID> extends EntityMapper<E> {
 
     @InjectStamp
-    ID insert(@Injected({CreateStamp.class, UpdateStamp.class, SoftDeleteEntity.class}) E payload);
+    E insert(@Injected({CreateStamp.class, UpdateStamp.class, SoftDeleteEntity.class}) E payload);
 
     E select(ID id);
 
     <S> List<E> selectAll(S specification);
 
     @InjectStamp
-    <P> ID update(
+    <P> E update(
             @Param("id") ID id,
             @Param("payload") @Injected(UpdateStamp.class) P payload
     );
 
     @InjectStamp
-    <P, S> List<ID> updateAll(
+    <P, S> List<E> updateAll(
             @Param("specification") S specification,
             @Param("payload") @Injected(UpdateStamp.class) P payload
     );

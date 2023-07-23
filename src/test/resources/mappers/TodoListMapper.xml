@@ -2,7 +2,11 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="mynghn.persistenceaop.mapper.TodoListMapper">
-  <select id="insert" parameterType="mynghn.persistenceaop.entity.TodoList" resultType="string">
+  <select
+    id="insert"
+    parameterType="mynghn.persistenceaop.entity.TodoList"
+    resultType="mynghn.persistenceaop.entity.TodoList"
+  >
     INSERT INTO PUBLIC.todo_list
     (id,
      title,
@@ -21,14 +25,14 @@
            #{lastModifiedBy}
     FROM PUBLIC.todo_list as tl
     WHERE substring(tl.id, 1, 6) = to_char(current_date, 'YYMMDD')
-    RETURNING id
+    RETURNING *
   </select>
   <select id="select" resultType="mynghn.persistenceaop.entity.TodoList">
     SELECT *
     FROM public.todo_list
     where id = #{id}
   </select>
-  <select id="update" resultType="string">
+  <select id="update" resultType="mynghn.persistenceaop.entity.TodoList">
     UPDATE PUBLIC.todo_list
     SET
     <if test="payload.title != null">title = #{payload.title},</if>
@@ -36,9 +40,9 @@
     last_modified_at = #{payload.lastModifiedAt},
     last_modified_by = #{payload.lastModifiedBy}
     WHERE id = #{id}
-    RETURNING id
+    RETURNING *
   </select>
-  <select id="updateAll" resultType="string">
+  <select id="updateAll" resultType="mynghn.persistenceaop.entity.TodoList">
     UPDATE PUBLIC.todo_list
     SET
     <if test="payload.title != null">title = #{payload.title},</if>
@@ -49,7 +53,7 @@
       <if test="specification.id != null">id = #{specification.id}</if>
       <if test="specification.titleLike != null">AND title like #{specification.titleLike}</if>
     </where>
-    RETURNING id
+    RETURNING *
   </select>
   <insert id="recordHistory">
     insert into PUBLIC.todo_list_history
@@ -61,18 +65,14 @@
      created_by,
      last_modified_at,
      last_modified_by)
-    select tl.id,
-           (select coalesce(max(tlh.history_sequence_no) + 1, 0)
-            from PUBLIC.todo_list_history tlh
-            where tlh.todo_list_id = #{entityId}),
-           tl.title,
-           tl.is_deleted,
-           tl.created_at,
-           tl.created_by,
-           tl.last_modified_at,
-           tl.last_modified_by
-    from PUBLIC.todo_list as tl
-    where tl.id = #{entityId}
+    values (#{id},
+            (select coalesce(max(tlh.history_sequence_no) + 1, 0)
+             from PUBLIC.todo_list_history tlh
+             where tlh.todo_list_id = #{id}),
+            #{title},
+            #{isDeleted},
+            #{createdAt}, #{createdBy},
+            #{lastModifiedAt}, #{lastModifiedBy})
   </insert>
   <insert id="recordHistories" parameterType="java.util.List">
     insert into PUBLIC.todo_list_history
@@ -84,26 +84,16 @@
     created_by,
     last_modified_at,
     last_modified_by)
-    select tl.id,
-    (select coalesce(max(tlh.history_sequence_no) + 1, 0)
-    from PUBLIC.todo_list_history tlh
-    where tlh.todo_list_id = tl.id),
-    tl.title,
-    tl.is_deleted,
-    tl.created_at,
-    tl.created_by,
-    tl.last_modified_at,
-    tl.last_modified_by
-    from PUBLIC.todo_list as tl
-    <where>
-      <choose>
-        <when test="entityIds.size != 0">
-          tl.id in
-          <foreach close=")" collection="entityIds" item="entityId" open="(" separator=",">
-            #{entityId}
-          </foreach>
-        </when>
-      </choose>
-    </where>
+    values
+    <foreach collection="entities" item="entity" separator=", ">
+      (#{entity.id},
+      (select coalesce(max(tlh.history_sequence_no) + 1, 0)
+      from PUBLIC.todo_list_history tlh
+      where tlh.todo_list_id = #{entity.id}),
+      #{entity.title},
+      #{entity.isDeleted},
+      #{entity.createdAt}, #{entity.createdBy},
+      #{entity.lastModifiedAt}, #{entity.lastModifiedBy})
+    </foreach>
   </insert>
 </mapper>

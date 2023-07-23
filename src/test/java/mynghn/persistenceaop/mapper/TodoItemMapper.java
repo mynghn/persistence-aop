@@ -11,9 +11,4 @@ public interface TodoItemMapper extends CrudWithHistoryMapper<TodoItem, String> 
     default Class<TodoItem> getEntityType() {
         return TodoItem.class;
     }
-
-    @Override
-    default Class<String> getEntityIdType() {
-        return String.class;
-    }
 }

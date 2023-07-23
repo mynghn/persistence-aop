@@ -14,12 +14,12 @@ public interface CrudWithHistoryMapper<E, ID> extends CrudMapper<E, ID> {
     @Override
     @InjectStamp
     @RecordHistory
-    ID insert(@Injected({CreateStamp.class, UpdateStamp.class, SoftDeleteEntity.class}) E payload);
+    E insert(@Injected({CreateStamp.class, UpdateStamp.class, SoftDeleteEntity.class}) E payload);
 
     @Override
     @InjectStamp
     @RecordHistory
-    <P> ID update(
+    <P> E update(
             @Param("id") ID id,
             @Param("payload") @Injected(UpdateStamp.class) P payload
     );
@@ -27,7 +27,7 @@ public interface CrudWithHistoryMapper<E, ID> extends CrudMapper<E, ID> {
     @Override
     @InjectStamp
     @RecordHistory(many = true)
-    <P, S> List<ID> updateAll(
+    <P, S> List<E> updateAll(
             @Param("specification") S specification,
             @Param("payload") @Injected(UpdateStamp.class) P payload
     );

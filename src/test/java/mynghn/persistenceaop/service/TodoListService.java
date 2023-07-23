@@ -21,15 +21,15 @@ public class TodoListService {
 
     @Transactional
     public TodoListCreateResponseDto create(TodoListCreateRequestDto requestDto) {
-        TodoList todoListEntity = fromRequest(requestDto);
-        String createdTodoListId = todoListMapper.insert(todoListEntity);
+        TodoList insertVo = fromRequest(requestDto);
+        TodoList entityInserted = todoListMapper.insert(insertVo);
 
         return new TodoListCreateResponseDto(
-                createdTodoListId,
+                entityInserted.getId(),
                 requestDto.getTodoItems().stream().map(todoItemDto -> {
-                    TodoItem todoItemEntity = fromRequest(createdTodoListId, todoItemDto);
-                    String createdTodoItemId = todoItemMapper.insert(todoItemEntity);
-                    return new TodoItemCreateResponseDto(createdTodoItemId);
+                    TodoItem todoItemInsertVo = fromRequest(entityInserted.getId(), todoItemDto);
+                    TodoItem todoItemInserted = todoItemMapper.insert(todoItemInsertVo);
+                    return new TodoItemCreateResponseDto(todoItemInserted.getId());
                 }).toList()
         );
     }
