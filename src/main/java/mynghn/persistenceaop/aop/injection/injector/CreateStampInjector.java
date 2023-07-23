@@ -1,16 +1,16 @@
-package mynghn.persistenceaop.aop.auditing.injector;
+package mynghn.persistenceaop.aop.injection.injector;
 
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.aop.auditing.aspect.AuditingAspect;
-import mynghn.persistenceaop.aop.auditing.injector.base.StampInjectorWithContext;
-import mynghn.persistenceaop.aop.auditing.session.AdviceSession;
+import mynghn.persistenceaop.aop.injection.aspect.InjectionAspect;
+import mynghn.persistenceaop.aop.injection.injector.base.StampInjectorWithContext;
+import mynghn.persistenceaop.aop.injection.session.AdviceSession;
 import mynghn.persistenceaop.entity.base.CreateStamp;
 
 @Slf4j
 public class CreateStampInjector extends StampInjectorWithContext {
 
-    public CreateStampInjector(AuditingAspect context) {
+    public CreateStampInjector(InjectionAspect context) {
         super(context);
     }
 
@@ -30,7 +30,7 @@ public class CreateStampInjector extends StampInjectorWithContext {
 
         AdviceSession currSession = context.getSession();
         if (currSession == null) {
-            throw new IllegalStateException("Audit advice session is missing.");
+            throw new IllegalStateException("InjectStamp advice session is missing.");
         }
 
         if (stampPayload.getCreatedAt() == null) {

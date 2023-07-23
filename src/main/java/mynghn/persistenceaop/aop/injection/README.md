@@ -1,10 +1,10 @@
 ## Workflow of repeated data injection AOP advice
 
-1. Annotate methods w/ [`@Audit`](./annotation/Audit.java) to mark as point cut target.
-2. Annotate method parameters w/ [`@InjectStamp`](./annotation/InjectStamp.java) to mark as injection target.
+1. Annotate methods w/ [`@InjectStamp`](./annotation/InjectStamp.java) to mark as point cut target.
+2. Annotate method parameters w/ [`@Injected`](./annotation/Injected.java) to mark as injection target.
 3. Declare injecting data(a.k.a. _Stamp_) types in `@InjectStamp` annotation with stamp classes.
    - e.g. `@InjectStamp(UpdateStamp.class)`, `@InjectStamp(stampTypes={CreateStamp.class, UpdateStamp.class})`
-4. Advice [`AuditingAspect.auditBefore()`](./aspect/AuditingAspect.java) is called _@Before_ executing `@Audit` annotated method.
+4. Advice [`InjectionAspect.auditBefore()`](./aspect/InjectionAspect.java) is called _@Before_ executing `@Audit` annotated method.
 5. Extract annotation and object pairs of `@InjectStamp` annotated arguments from join point method.
 6. Start advice execution scope session and set session info (e.g. current timestamp, username) for consistent usage within advice runtime.
 7. For all `@InjectStamp` annotated arguments, corresponding data for each stamp types declared in `@InjectStamp` annotation is injected(set) to argument object.
@@ -14,11 +14,11 @@
 
 ### About [`StampInjector`](./injector/base/StampInjector.java) interface and _Chain of Responsibility_ pattern
 
-> Each stamp type has its own `StampInjector` implementation and all implementations (in use) should be registered in `AuditingAspect` class.
+> Each stamp type has its own `StampInjector` implementation and all implementations (in use) should be registered in `InjectionAspect` class.
 >
 > ```java
 > private final List<StampInjector> injectors;
-> public AuditingAspect() {
+> public InjectionAspect() {
 >     injectors = List.of(
 >             new CreateStampInjector(this),
 >             new UpdateStampInjector(this),
@@ -55,7 +55,7 @@
 > 
 > In that aspect, session with advice execution scope is introduced to resolve this issue.
 > 
-> `AuditingAspect` instance stores [`AdviceSession`](./session/AdviceSession.java) object as a member variable `session`.
+> `InjectionAspect` instance stores [`AdviceSession`](./session/AdviceSession.java) object as a member variable `session`.
 > ```java
 > private AdviceSession session;
 > ```
@@ -73,12 +73,12 @@
 >                .build();
 >    }
 >    ```
-> 2. During injection step, handler instances which extended [`StampInjectorWithContext`](./injector/base/StampInjectorWithContext.java) can access advice session through constructor injected `AuditingAspect` object.
+> 2. During injection step, handler instances which extended [`StampInjectorWithContext`](./injector/base/StampInjectorWithContext.java) can access advice session through constructor injected `InjectionAspect` object.
 >    ```java
 >    // StampInjectorWithContext.java
 >    public abstract class StampInjectorWithContext implements StampInjector {
->        protected AuditingAspect context;
->        protected StampInjectorWithContext(AuditingAspect context) {
+>        protected InjectionAspect context;
+>        protected StampInjectorWithContext(InjectionAspect context) {
 >            this.context = context;
 >        }
 >    }
@@ -102,6 +102,6 @@
 >        session = null;
 >    }
 >    ```
-> So in effect, `session` variable has innate lifecycle of `AuditingAspect` instance scope, but it's managed to have lifecycle of each advice execution scope.
+> So in effect, `session` variable has innate lifecycle of `InjectionAspect` instance scope, but it's managed to have lifecycle of each advice execution scope.
 > 
 > Another AOP advice providing `AdviceSession` instance to other advices might be a solution to this `session` variable lifecycle inconsistency issue.

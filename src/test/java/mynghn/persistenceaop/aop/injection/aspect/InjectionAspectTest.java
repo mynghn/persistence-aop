@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.auditing.aspect;
+package mynghn.persistenceaop.aop.injection.aspect;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +15,7 @@ import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class AuditingAspectTest {
+class InjectionAspectTest {
 
     @Autowired
     private TodoListMapper todoListMapper;

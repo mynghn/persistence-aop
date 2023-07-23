@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.auditing.aspect;
+package mynghn.persistenceaop.aop.injection.aspect;
 
 import java.lang.annotation.Annotation;
 import java.time.LocalDateTime;
@@ -7,14 +7,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import javax.lang.model.type.NullType;
 import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.aop.auditing.annotation.InjectStamp;
-import mynghn.persistenceaop.aop.auditing.injector.CreateStampInjector;
-import mynghn.persistenceaop.aop.auditing.injector.SoftDeleteStampInjector;
-import mynghn.persistenceaop.aop.auditing.injector.UpdateStampInjector;
-import mynghn.persistenceaop.aop.auditing.injector.base.StampInjector;
-import mynghn.persistenceaop.aop.auditing.session.AdviceSession;
+import mynghn.persistenceaop.aop.injection.annotation.Injected;
+import mynghn.persistenceaop.aop.injection.injector.CreateStampInjector;
+import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
+import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
+import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
+import mynghn.persistenceaop.aop.injection.session.AdviceSession;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.JoinPoint;
@@ -26,12 +25,12 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Aspect
 @Component
-public class AuditingAspect {
+public class InjectionAspect {
 
     private final List<StampInjector> injectors;
     private AdviceSession session;
 
-    public AuditingAspect() {
+    public InjectionAspect() {
         injectors = List.of(
                 new CreateStampInjector(this),
                 new UpdateStampInjector(this),
@@ -39,27 +38,20 @@ public class AuditingAspect {
         );
     }
 
-    private static Stream<Pair<InjectStamp, Object>> getAnnotatedTargetArgs(JoinPoint joinPoint) {
+    private static Stream<Pair<Injected, Object>> getAnnotatedTargetArgs(JoinPoint joinPoint) {
         Annotation[][] paramAnnotationsArr = ((MethodSignature) joinPoint.getSignature()).getMethod()
                 .getParameterAnnotations();
         Object[] joinPointArgs = joinPoint.getArgs();
 
         return IntStream.range(0, paramAnnotationsArr.length)
                 .mapToObj(idx -> Pair.of(Arrays.stream(paramAnnotationsArr[idx])
-                        .filter(annotation -> annotation.annotationType() == InjectStamp.class)
+                        .filter(annotation -> annotation.annotationType() == Injected.class)
                         .findFirst(), joinPointArgs[idx]))
                 .filter(optionalArgPair -> optionalArgPair.getLeft().isPresent())
                 .map(optionalArgPair -> Pair.of(
-                        (InjectStamp) optionalArgPair.getLeft().orElseThrow(),
+                        (Injected) optionalArgPair.getLeft().orElseThrow(),
                         optionalArgPair.getRight()
                 ));
-    }
-
-    private static Stream<Class<?>> getInjectingStampTypes(InjectStamp annotation) {
-        if (annotation.value() != NullType.class) {
-            return Stream.of(annotation.value());
-        }
-        return Arrays.stream(annotation.stampTypes());
     }
 
     public AdviceSession getSession() {
@@ -87,11 +79,11 @@ public class AuditingAspect {
         session = null;
     }
 
-    @Before("@annotation(mynghn.persistenceaop.aop.auditing.annotation.Audit)")
+    @Before("@annotation(mynghn.persistenceaop.aop.injection.annotation.InjectStamp)")
     public void auditBefore(JoinPoint joinPoint) {
         log.debug("Advice starting on join point: {}", joinPoint);
 
-        Stream<Pair<InjectStamp, Object>> annotatedArgTargets = getAnnotatedTargetArgs(joinPoint);
+        Stream<Pair<Injected, Object>> annotatedArgTargets = getAnnotatedTargetArgs(joinPoint);
 
         // Start session
         startSession();
@@ -99,10 +91,10 @@ public class AuditingAspect {
 
         annotatedArgTargets.forEach(
                 pair -> {
-                    InjectStamp annotation = pair.getLeft();
+                    Injected annotation = pair.getLeft();
                     Object arg = pair.getRight();
 
-                    injectStamps(getInjectingStampTypes(annotation), arg);
+                    injectStamps(annotation.value(), arg);
                 }
         );
 
@@ -112,8 +104,8 @@ public class AuditingAspect {
     }
 
 
-    private void injectStamps(Stream<Class<?>> stampTypes, Object payload) {
-        stampTypes.forEach(stampType -> {
+    private void injectStamps(Class<?>[] stampTypes, Object payload) {
+        Arrays.stream(stampTypes).forEach(stampType -> {
             if (!stampType.isAssignableFrom(payload.getClass())) {
                 throw new IllegalArgumentException(String.format(
                         "Payload with type '%s' is not assignable to stamp type '%s",

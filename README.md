@@ -16,7 +16,7 @@ Demo project for Spring AOP features (especially within persistence layer)
 ## Features
 
 #### 1. [AOP advice for recording revision histories](./src/main/java/mynghn/persistenceaop/aop/history)
-#### 2. [AOP advice for injecting repeated data to method arguments](./src/main/java/mynghn/persistenceaop/aop/auditing)
+#### 2. [AOP advice for injecting repeated data to method arguments](./src/main/java/mynghn/persistenceaop/aop/injection)
 
 ## Examples
 

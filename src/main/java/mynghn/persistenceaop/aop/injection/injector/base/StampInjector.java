@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.auditing.injector.base;
+package mynghn.persistenceaop.aop.injection.injector.base;
 
 public interface StampInjector {
 

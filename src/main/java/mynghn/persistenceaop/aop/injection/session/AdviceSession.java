@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.aop.auditing.session;
+package mynghn.persistenceaop.aop.injection.session;
 
 import java.time.LocalDateTime;
 import lombok.Builder;
