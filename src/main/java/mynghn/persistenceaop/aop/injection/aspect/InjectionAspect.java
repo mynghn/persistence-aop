@@ -13,6 +13,7 @@ import mynghn.persistenceaop.aop.injection.injector.CreateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionContainer;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -27,11 +28,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class InjectionAspect {
 
-    private static final ThreadLocal<AdviceSession> session = new ThreadLocal<>();
-
     private static final List<StampInjector> injectors = List.of(
-            new CreateStampInjector(session),
-            new UpdateStampInjector(session),
+            new CreateStampInjector(),
+            new UpdateStampInjector(),
             new SoftDeleteStampInjector()
     );
 
@@ -52,7 +51,8 @@ public class InjectionAspect {
     }
 
     private void startSession() {
-        if (session.get() != null) {
+        AdviceSessionContainer sessionContainer = AdviceSessionContainer.getInstance();
+        if (sessionContainer.get() != null) {
             throw new IllegalStateException("Instance scope advice session is already in use.");
         }
         AdviceSession newSession = AdviceSession.builder()
@@ -61,18 +61,19 @@ public class InjectionAspect {
                 // e.g. get user info from current HttpSession obj
                 .username(RandomStringUtils.random(10, true, true))
                 .build();
-        session.set(newSession);
+        sessionContainer.set(newSession);
         log.debug("Advice session started: '{}'", newSession);
     }
 
     private void endSession() {
-        AdviceSession currSession = session.get();
+        AdviceSessionContainer sessionContainer = AdviceSessionContainer.getInstance();
+        AdviceSession currSession = sessionContainer.get();
         if (currSession == null) {
             throw new IllegalStateException(
                     "Advice session does not exist. Start a session first, or illegal session termination has occurred."
             );
         }
-        session.remove();
+        sessionContainer.remove();
         log.debug("Advice session terminated. ({})", currSession);
     }
 

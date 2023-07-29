@@ -9,10 +9,6 @@ import mynghn.persistenceaop.entity.base.UpdateStamp;
 @Slf4j
 public class UpdateStampInjector extends StampInjectorWithContext {
 
-    public UpdateStampInjector(ThreadLocal<AdviceSession> sessionContainer) {
-        super(sessionContainer);
-    }
-
     @Override
     public boolean supports(Class<?> stampType) {
         return stampType == UpdateStamp.class;
@@ -29,13 +25,13 @@ public class UpdateStampInjector extends StampInjectorWithContext {
 
         AdviceSession currSession = getSession();
         if (stampPayload.getLastModifiedAt() == null) {
-            LocalDateTime currSessionTime = currSession.getTime();
+            LocalDateTime currSessionTime = currSession.time();
             stampPayload.setLastModifiedAt(currSessionTime);
             log.debug("Last modified time '{}' injected to payload: {}",
                     currSessionTime, payload);
         }
         if (stampPayload.getLastModifiedBy() == null) {
-            String currSessionUsername = currSession.getUsername();
+            String currSessionUsername = currSession.username();
             stampPayload.setLastModifiedBy(currSessionUsername);
             log.debug("Last modified username '{}' injected to payload: {}",
                     currSessionUsername, payload);

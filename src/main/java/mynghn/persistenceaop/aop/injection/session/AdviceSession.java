@@ -2,15 +2,8 @@ package mynghn.persistenceaop.aop.injection.session;
 
 import java.time.LocalDateTime;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
 
-@Getter
 @Builder
-@ToString
-public class AdviceSession {
+public record AdviceSession(LocalDateTime time, String username) {
 
-    private final LocalDateTime time;
-
-    private final String username;
 }
