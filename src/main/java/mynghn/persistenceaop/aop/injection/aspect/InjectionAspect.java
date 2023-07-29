@@ -51,8 +51,8 @@ public class InjectionAspect {
     }
 
     private void startSession() {
-        AdviceSessionContainer sessionContainer = AdviceSessionContainer.getInstance();
-        if (sessionContainer.get() != null) {
+        AdviceSession currSession = AdviceSessionContainer.getSession();
+        if (currSession != null) {
             throw new IllegalStateException("Instance scope advice session is already in use.");
         }
         AdviceSession newSession = AdviceSession.builder()
@@ -61,19 +61,18 @@ public class InjectionAspect {
                 // e.g. get user info from current HttpSession obj
                 .username(RandomStringUtils.random(10, true, true))
                 .build();
-        sessionContainer.set(newSession);
+        AdviceSessionContainer.setSession(newSession);
         log.debug("Advice session started: '{}'", newSession);
     }
 
     private void endSession() {
-        AdviceSessionContainer sessionContainer = AdviceSessionContainer.getInstance();
-        AdviceSession currSession = sessionContainer.get();
+        AdviceSession currSession = AdviceSessionContainer.getSession();
         if (currSession == null) {
             throw new IllegalStateException(
                     "Advice session does not exist. Start a session first, or illegal session termination has occurred."
             );
         }
-        sessionContainer.remove();
+        AdviceSessionContainer.removeSession();
         log.debug("Advice session terminated. ({})", currSession);
     }
 
