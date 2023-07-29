@@ -1,21 +1,18 @@
 package mynghn.persistenceaop.aop.injection.session;
 
-public final class AdviceSessionContainer extends ThreadLocal<AdviceSession> {
+public final class AdviceSessionContainer {
 
-    private static final AdviceSessionContainer instance = new AdviceSessionContainer();
-
-    private AdviceSessionContainer() {
-    }
+    private static final ThreadLocal<AdviceSession> threadLocalSessionStorage = new ThreadLocal<>();
 
     public static AdviceSession getSession() {
-        return instance.get();
+        return threadLocalSessionStorage.get();
     }
 
     public static void setSession(AdviceSession session) {
-        instance.set(session);
+        threadLocalSessionStorage.set(session);
     }
 
     public static void removeSession() {
-        instance.remove();
+        threadLocalSessionStorage.remove();
     }
 }
