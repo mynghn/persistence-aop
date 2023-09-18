@@ -1,6 +1,6 @@
 package mynghn.persistenceaop.aop.injection.session;
 
-public final class AdviceSessionHandler {
+public class AdviceSessionHandler {
 
     private static final ThreadLocal<AdviceSession> threadLocalSessionStorage = new ThreadLocal<>();
 
