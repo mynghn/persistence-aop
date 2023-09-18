@@ -1,14 +1,14 @@
-package mynghn.persistenceaop.service;
+package mynghn.persistenceaop.sampleapp.service;
 
 import lombok.RequiredArgsConstructor;
-import mynghn.persistenceaop.dto.TodoItemCreateRequestDto;
-import mynghn.persistenceaop.dto.TodoItemCreateResponseDto;
-import mynghn.persistenceaop.dto.TodoListCreateRequestDto;
-import mynghn.persistenceaop.dto.TodoListCreateResponseDto;
-import mynghn.persistenceaop.entity.TodoItem;
-import mynghn.persistenceaop.entity.TodoList;
-import mynghn.persistenceaop.mapper.TodoItemMapper;
-import mynghn.persistenceaop.mapper.TodoListMapper;
+import mynghn.persistenceaop.sampleapp.dto.TodoItemCreateRequestDto;
+import mynghn.persistenceaop.sampleapp.dto.TodoItemCreateResponseDto;
+import mynghn.persistenceaop.sampleapp.dto.TodoListCreateRequestDto;
+import mynghn.persistenceaop.sampleapp.dto.TodoListCreateResponseDto;
+import mynghn.persistenceaop.sampleapp.entity.TodoItem;
+import mynghn.persistenceaop.sampleapp.entity.TodoList;
+import mynghn.persistenceaop.sampleapp.mapper.TodoItemMapper;
+import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

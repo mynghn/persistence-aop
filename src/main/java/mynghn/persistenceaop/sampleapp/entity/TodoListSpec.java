@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.entity;
+package mynghn.persistenceaop.sampleapp.entity;
 
 import lombok.Builder;
 import lombok.Getter;

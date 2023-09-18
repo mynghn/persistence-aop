@@ -1,7 +1,7 @@
-package mynghn.persistenceaop.mapper;
+package mynghn.persistenceaop.sampleapp.mapper;
 
-import mynghn.persistenceaop.entity.TodoItemHistory;
-import mynghn.persistenceaop.entity.TodoListHistory;
+import mynghn.persistenceaop.sampleapp.entity.TodoItemHistory;
+import mynghn.persistenceaop.sampleapp.entity.TodoListHistory;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper

@@ -1,136 +1,113 @@
 package mynghn.persistenceaop.aop.history.aspect;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.time.LocalDate;
 import java.util.List;
-import mynghn.persistenceaop.dto.TodoItemCreateRequestDto;
-import mynghn.persistenceaop.dto.TodoListCreateRequestDto;
-import mynghn.persistenceaop.dto.TodoListCreateResponseDto;
-import mynghn.persistenceaop.entity.TodoItemHistory;
-import mynghn.persistenceaop.entity.TodoList;
-import mynghn.persistenceaop.entity.TodoListHistory;
-import mynghn.persistenceaop.entity.TodoListSpec;
-import mynghn.persistenceaop.mapper.HistoriesMapper;
-import mynghn.persistenceaop.mapper.TodoListMapper;
-import mynghn.persistenceaop.service.TodoListService;
+import mynghn.persistenceaop.mapper.base.HistoryMapper;
+import mynghn.persistenceaop.sampleapp.entity.TodoList;
+import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
+import org.mockito.ArgumentCaptor;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.ResolvableType;
 
-@SpringBootTest
-@ActiveProfiles("test")
 class HistoryAspectTest {
 
-    @Autowired
-    private TodoListService todoListService;
-    @Autowired
-    private TodoListMapper todoListMapper;
+    private final ApplicationContext mockApplicationContext = mock(ApplicationContext.class);
 
-    @Autowired
-    private HistoriesMapper historiesMapper;
+    private final TodoListMapper mockMapper = mock(TodoListMapper.class);
 
-    @Test
-    @Sql("/test-schema.sql")
-    public void recordEntityHistoryAdviceWorksOnInsert() {
-        // Arrange
-        String testTodoItemTitle1 = "Test Todo Item 1";
-        String testTodoItemDescription1 = "This is test todo item 1.";
-        LocalDate testTodoItemDueDate1 = LocalDate.of(2023, 7, 30);
-        TodoItemCreateRequestDto testTodoItem1Dto = TodoItemCreateRequestDto.builder()
-                .title(testTodoItemTitle1).description(testTodoItemDescription1)
-                .dueDate(testTodoItemDueDate1).build();
+    private final AspectJProxyFactory aspectJProxyFactory = new AspectJProxyFactory(mockMapper);
 
-        String testTodoItemTitle2 = "Test Todo Item 2";
-        String testTodoItemDescription2 = "This is test todo item 2.";
-        LocalDate testTodoItemDueDate2 = LocalDate.of(2023, 8, 30);
-        TodoItemCreateRequestDto testTodoItem2Dto = TodoItemCreateRequestDto.builder()
-                .title(testTodoItemTitle2).description(testTodoItemDescription2)
-                .dueDate(testTodoItemDueDate2).build();
+    private final HistoryAspect sut = new HistoryAspect(mockApplicationContext);
 
-        String testTodoListTitle = "=== Test Todo List ===";
-        TodoListCreateRequestDto testTodoListDto = TodoListCreateRequestDto.builder()
-                .title(testTodoListTitle).todoItems(List.of(testTodoItem1Dto, testTodoItem2Dto))
-                .build();
+    @BeforeEach
+    void setup() {
+        // Stub ApplicationContext
+        when(mockApplicationContext.getBeanNamesForType(any(ResolvableType.class)))
+                .thenReturn(new String[]{"Mocked"});
+        when(mockApplicationContext.getBean("Mocked", HistoryMapper.class))
+                .thenReturn(mockMapper);
 
-        // Act
-        TodoListCreateResponseDto todoListCreateResponseDto = todoListService.create(
-                testTodoListDto);
-
-        // Assert
-        assertThat(historiesMapper.countAllTodoListHistories()).isEqualTo(1);
-
-        TodoListHistory actualTodoListHistory = historiesMapper.getTodoListHistory(
-                todoListCreateResponseDto.getId(), 0);
-        assertThat(actualTodoListHistory.getTodoListTitle()).isEqualTo(testTodoListTitle);
-
-        assertThat(historiesMapper.countAllTodoItemHistories()).isEqualTo(2);
-
-        TodoItemHistory actualTodoItem1History = historiesMapper.getTodoItemHistory(
-                todoListCreateResponseDto.getTodoItems().get(0).getId(), 0);
-        assertThat(actualTodoItem1History.getTodoItemTitle()).isEqualTo(testTodoItemTitle1);
-        assertThat(actualTodoItem1History.getTodoItemDescription()).isEqualTo(
-                testTodoItemDescription1);
-        assertThat(actualTodoItem1History.getTodoItemDueDate()).isEqualTo(testTodoItemDueDate1);
-        assertThat(actualTodoItem1History.getTodoItemTodoListId()).isEqualTo(
-                todoListCreateResponseDto.getId());
-
-        TodoItemHistory actualTodoItem2History = historiesMapper.getTodoItemHistory(
-                todoListCreateResponseDto.getTodoItems().get(1).getId(), 0);
-        assertThat(actualTodoItem2History.getTodoItemTitle()).isEqualTo(testTodoItemTitle2);
-        assertThat(actualTodoItem2History.getTodoItemDescription()).isEqualTo(
-                testTodoItemDescription2);
-        assertThat(actualTodoItem2History.getTodoItemDueDate()).isEqualTo(testTodoItemDueDate2);
-        assertThat(actualTodoItem2History.getTodoItemTodoListId()).isEqualTo(
-                todoListCreateResponseDto.getId());
+        // Register HistoryAspect
+        aspectJProxyFactory.addAspect(sut);
     }
 
     @Test
-    @Sql({"/test-schema.sql", "/test-data.sql"})
+    void recordEntityHistoryAdviceWorksOnInsert() {
+        /* Arrange */
+        // prepare test data
+        TodoList testInsertVo = TodoList.builder().build();
+        TodoList testInsertReturn = TodoList.builder().build();
+        // stub mapper
+        when(mockMapper.insert(testInsertVo)).thenReturn(testInsertReturn);
+
+        /* Act */
+        TodoListMapper aopTargetMapper = getAopTargetedMapper();
+        aopTargetMapper.insert(testInsertVo);
+
+        /* Assert */
+        ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
+        verify(mockMapper, times(1)).recordHistory(argumentCaptor.capture());
+        verify(mockMapper, times(0)).recordHistories(any());
+        assertThat(argumentCaptor.getValue()).isEqualTo(testInsertReturn);
+    }
+
+    @Test
     public void recordEntityHistoryAdviceWorksOnUpdate() {
-        // Arrange
-        String todoListId = "230712-000";
-        String newTitle = "Test Todo List Title Updated";
-        TodoListCreateRequestDto updatePayload = TodoListCreateRequestDto.builder().title(newTitle)
-                .build();
+        /* Arrange */
+        // prepare test data
+        String testId = "Testing...";
+        TodoList testUpdateVo = TodoList.builder().build();
+        TodoList testUpdateReturn = TodoList.builder().build();
+        // stub mapper
+        when(mockMapper.update(testId, testUpdateVo)).thenReturn(testUpdateReturn);
 
-        // Act
-        todoListService.update(todoListId, updatePayload);
+        /* Act */
+        TodoListMapper aopTargetMapper = getAopTargetedMapper();
+        aopTargetMapper.update(testId, testUpdateVo);
 
-        // Assert
-        assertThat(historiesMapper.countAllTodoListHistories()).isEqualTo(1);
-
-        TodoListHistory actualHistory = historiesMapper.getTodoListHistory(todoListId, 0);
-        assertThat(actualHistory.getTodoListTitle()).isEqualTo(newTitle);
+        /* Assert */
+        ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
+        verify(mockMapper, times(1)).recordHistory(argumentCaptor.capture());
+        verify(mockMapper, times(0)).recordHistories(any());
+        assertThat(argumentCaptor.getValue()).isEqualTo(testUpdateReturn);
     }
 
     @Test
-    @Sql({"/test-schema.sql", "/test-data.sql"})
     public void recordMultipleEntityHistoriesAdviceWorksOnUpdateAll() {
-        // Arrange
-        int rowsToBeAffected = 2;
-        String todoList1Id = "230712-000";
-        String todoList2Id = "230713-000";
+        /* Arrange */
+        // prepare test data
+        TodoList testUpdateVo = TodoList.builder().build();
+        TodoList testUpdateReturn1 = TodoList.builder().build();
+        TodoList testUpdateReturn2 = TodoList.builder().build();
+        // stub mapper
+        when(mockMapper.updateAll(any(Object.class), eq(testUpdateVo)))
+                .thenReturn(List.of(testUpdateReturn1, testUpdateReturn2));
 
-        String titleLikeQ = "Test%";
-        TodoListSpec filter = TodoListSpec.builder().titleLike(titleLikeQ).build();
-        String newTitle = "updated title";
-        TodoList updatePayload = TodoList.builder().title(newTitle).build();
+        /* Act */
+        TodoListMapper aopTargetMapper = getAopTargetedMapper();
+        aopTargetMapper.updateAll(new Object(), testUpdateVo);
 
-        // Act
-        todoListMapper.updateAll(filter, updatePayload);
+        /* Assert */
+        @SuppressWarnings("unchecked") ArgumentCaptor<List<TodoList>> argumentCaptor = ArgumentCaptor.forClass(List.class);
+        verify(mockMapper, times(1)).recordHistories(argumentCaptor.capture());
+        verify(mockMapper, times(0)).recordHistory(any());
+        List<TodoList> actualUpdateAllReturn = argumentCaptor.getValue();
+        assertThat(actualUpdateAllReturn.size()).isEqualTo(2);
+        assertThat(actualUpdateAllReturn.get(0)).isEqualTo(testUpdateReturn1);
+        assertThat(actualUpdateAllReturn.get(1)).isEqualTo(testUpdateReturn2);
+    }
 
-        // Assert
-        assertThat(historiesMapper.countAllTodoListHistories()).isEqualTo(rowsToBeAffected);
-
-        TodoListHistory actualHistory1 = historiesMapper.getTodoListHistory(todoList1Id, 0);
-        assertThat(actualHistory1).isNotNull();
-        assertThat(actualHistory1.getTodoListTitle()).isEqualTo(newTitle);
-
-        TodoListHistory actualHistory2 = historiesMapper.getTodoListHistory(todoList2Id, 0);
-        assertThat(actualHistory2).isNotNull();
-        assertThat(actualHistory2.getTodoListTitle()).isEqualTo(newTitle);
+    private TodoListMapper getAopTargetedMapper() {
+        return aspectJProxyFactory.getProxy();
     }
 }

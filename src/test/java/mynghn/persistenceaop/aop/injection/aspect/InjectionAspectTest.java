@@ -1,137 +1,119 @@
 package mynghn.persistenceaop.aop.injection.aspect;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
-import lombok.extern.slf4j.Slf4j;
-import mynghn.persistenceaop.entity.TodoList;
-import mynghn.persistenceaop.entity.TodoListSpec;
-import mynghn.persistenceaop.mapper.TodoListMapper;
+import mynghn.persistenceaop.aop.injection.session.AdviceSession;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionBuilder;
+import mynghn.persistenceaop.sampleapp.entity.TodoList;
+import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.jdbc.Sql;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
-@Slf4j
-@SpringBootTest
-@ActiveProfiles("test")
 class InjectionAspectTest {
 
-    @Autowired
-    private TodoListMapper todoListMapper;
+    private final TodoListMapper mockMapper = mock(TodoListMapper.class);
+    private final AspectJProxyFactory aspectJProxyFactory = new AspectJProxyFactory(mockMapper);
+    private final InjectionAspect sut = new InjectionAspect();
 
-    @Test
-    @Sql("/test-schema.sql")
-    public void allCreateUpdateSoftDeleteStampsInjectedBeforeInsert() {
-        // Arrange
-        TodoList testPayload = TodoList.builder().title("Test TodoList").build();
+    private final AdviceSession testSession = AdviceSession.builder()
+            .username("Test User")
+            .time(LocalDateTime.now())
+            .build();
 
-        // Act
-        TodoList todoListInserted = todoListMapper.insert(testPayload);
-
-        // Assert
-        assertThat(testPayload.getIsDeleted()).isFalse();
-
-        LocalDateTime timestampInjected = testPayload.getCreatedAt();
-        assertThat(timestampInjected).isNotNull();
-        assertThat(testPayload.getLastModifiedAt()).isEqualTo(timestampInjected);
-
-        String usernameInjected = testPayload.getCreatedBy();
-        assertThat(usernameInjected).isNotNull();
-        assertThat(testPayload.getLastModifiedBy()).isEqualTo(usernameInjected);
-
-        assertThat(todoListInserted.getIsDeleted()).isEqualTo(testPayload.getIsDeleted());
-        assertThat(todoListInserted.getCreatedAt()).isEqualTo(testPayload.getCreatedAt());
-        assertThat(todoListInserted.getCreatedBy()).isEqualTo(testPayload.getCreatedBy());
-        assertThat(todoListInserted.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
-        assertThat(todoListInserted.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
+    @BeforeEach
+    void setup() {
+        // Register InjectionAspect
+        aspectJProxyFactory.addAspect(sut);
     }
 
     @Test
-    @Sql({"/test-schema.sql", "/test-data.sql"})
-    public void onlyUpdateStampInjectedBeforeUpdate() {
+    void createStampUpdateStampAndSoftDeleteStampInjectedBeforeInsert() {
         // Arrange
-        String testTodoListId = "230712-000";
-        TodoList testPayload = TodoList.builder().title("Test TodoList Updated").build();
+        TodoList testInsertVo = TodoList.builder().build();
 
         // Act
-        todoListMapper.update(testTodoListId, testPayload);
-
-        // Assert
-        assertThat(testPayload.getIsDeleted()).isNull();
-
-        assertThat(testPayload.getCreatedAt()).isNull();
-        assertThat(testPayload.getCreatedBy()).isNull();
-
-        assertThat(testPayload.getLastModifiedAt()).isNotNull();
-        assertThat(testPayload.getLastModifiedBy()).isNotNull();
-        TodoList todoListSelected = todoListMapper.select(testTodoListId);
-        assertThat(todoListSelected.getLastModifiedAt()).isEqualTo(testPayload.getLastModifiedAt());
-        assertThat(todoListSelected.getLastModifiedBy()).isEqualTo(testPayload.getLastModifiedBy());
-    }
-
-    @Test
-    @Sql({"/test-schema.sql", "/test-data.sql"})
-    public void onlyUpdateStampInjectedBeforeUpdateAll() {
-        // Arrange
-        String titleLikeQ = "Test%";
-        TodoListSpec filter = TodoListSpec.builder().titleLike(titleLikeQ).build();
-        TodoList testPayload = TodoList.builder().title("Test TodoList Updated").build();
-
-        // Act
-        List<TodoList> todoListsUpdated = todoListMapper.updateAll(filter, testPayload);
-
-        // Assert
-        assertThat(testPayload.getIsDeleted()).isNull();
-
-        assertThat(testPayload.getCreatedAt()).isNull();
-        assertThat(testPayload.getCreatedBy()).isNull();
-
-        assertThat(testPayload.getLastModifiedAt()).isNotNull();
-        assertThat(testPayload.getLastModifiedBy()).isNotNull();
-        todoListsUpdated.forEach(todoListUpdated -> {
-            assertThat(todoListUpdated.getLastModifiedAt()).isEqualTo(
-                    testPayload.getLastModifiedAt());
-            assertThat(todoListUpdated.getLastModifiedBy()).isEqualTo(
-                    testPayload.getLastModifiedBy());
-        });
-    }
-
-    @Test
-    @Sql("/test-schema.sql")
-    public void createStampInjectionInMultiThreadEnvWorks() throws InterruptedException {
-        // Arrange
-        int maxTodoListPerDay = 100;
-        CountDownLatch latch = new CountDownLatch(maxTodoListPerDay);
-        ExecutorService executorService = Executors.newFixedThreadPool(maxTodoListPerDay);
-
-        AtomicInteger successCnt = new AtomicInteger();
-
-        // Act
-        for (int i = 0; i < maxTodoListPerDay; i++) {
-            int finalI = i;
-            executorService.execute(() -> {
-                try {
-                    TodoList insertVo = TodoList.builder()
-                            .title(String.format("Test TodoList %d", finalI))
-                            .build();
-                    TodoList todoListInserted = todoListMapper.insert(insertVo);
-                    log.debug("TodoList inserted: {}", todoListInserted);
-                    successCnt.getAndIncrement();
-                } finally {
-                    latch.countDown();
-                }
-            });
+        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+            getAopTargetedMapper().insert(testInsertVo);
         }
-        latch.await();
 
         // Assert
-        assertThat(successCnt.get()).isEqualTo(maxTodoListPerDay);
+        ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
+        verify(mockMapper).insert(argumentCaptor.capture());
+        TodoList actualInsertVo = argumentCaptor.getValue();
+
+        assertThat(actualInsertVo).isEqualTo(testInsertVo);
+        assertThat(actualInsertVo.getIsDeleted().booleanValue()).isFalse();
+        assertThat(actualInsertVo.getCreatedBy()).isEqualTo(testSession.username());
+        assertThat(actualInsertVo.getCreatedAt()).isEqualTo(testSession.time());
+        assertThat(actualInsertVo.getLastModifiedBy()).isEqualTo(testSession.username());
+        assertThat(actualInsertVo.getLastModifiedAt()).isEqualTo(testSession.time());
+    }
+
+    @Test
+    void onlyUpdateStampInjectedBeforeUpdate() {
+        // Arrange
+        TodoList testUpdateVo = TodoList.builder().build();
+
+        // Act
+        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+            getAopTargetedMapper().update("Testing...", testUpdateVo);
+        }
+
+        // Assert
+        ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
+        verify(mockMapper).update(any(), argumentCaptor.capture());
+        TodoList actualUpdateVo = argumentCaptor.getValue();
+
+        assertThat(actualUpdateVo).isEqualTo(testUpdateVo);
+        assertThat(actualUpdateVo.getIsDeleted()).isNull();
+        assertThat(actualUpdateVo.getCreatedBy()).isNull();
+        assertThat(actualUpdateVo.getCreatedAt()).isNull();
+        assertThat(actualUpdateVo.getLastModifiedBy()).isEqualTo(testSession.username());
+        assertThat(actualUpdateVo.getLastModifiedAt()).isEqualTo(testSession.time());
+    }
+
+    @Test
+    void onlyUpdateStampInjectedBeforeUpdateAll() {
+        // Arrange
+        TodoList testUpdateVo = TodoList.builder().build();
+        TodoListMapper aopTargetedMapper = getAopTargetedMapper();
+
+        // Act
+        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+            aopTargetedMapper.updateAll("Testing...", testUpdateVo);
+        }
+
+        // Assert
+        ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
+        verify(mockMapper).updateAll(any(), argumentCaptor.capture());
+        TodoList actualUpdateVo = argumentCaptor.getValue();
+
+        assertThat(actualUpdateVo).isEqualTo(testUpdateVo);
+        assertThat(actualUpdateVo.getIsDeleted()).isNull();
+        assertThat(actualUpdateVo.getCreatedBy()).isNull();
+        assertThat(actualUpdateVo.getCreatedAt()).isNull();
+        assertThat(actualUpdateVo.getLastModifiedBy()).isEqualTo(testSession.username());
+        assertThat(actualUpdateVo.getLastModifiedAt()).isEqualTo(testSession.time());
+    }
+
+    private MockedStatic<AdviceSessionBuilder> stubAdviceSessionBuilder() {
+        MockedStatic<AdviceSessionBuilder> mocked = mockStatic(
+                AdviceSessionBuilder.class);
+
+        mocked.when(AdviceSessionBuilder::newSession).thenReturn(testSession);
+
+        return mocked;
+    }
+
+    private TodoListMapper getAopTargetedMapper() {
+        return aspectJProxyFactory.getProxy();
     }
 }

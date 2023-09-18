@@ -1,4 +1,4 @@
-package mynghn.persistenceaop.dto;
+package mynghn.persistenceaop.sampleapp.dto;
 
 import java.time.LocalDate;
 import lombok.Builder;

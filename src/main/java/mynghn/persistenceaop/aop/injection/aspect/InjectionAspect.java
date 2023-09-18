@@ -1,7 +1,6 @@
 package mynghn.persistenceaop.aop.injection.aspect;
 
 import java.lang.annotation.Annotation;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -13,9 +12,9 @@ import mynghn.persistenceaop.aop.injection.injector.CreateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionContainer;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import org.apache.commons.lang3.RandomStringUtils;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionBuilder;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionContainer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
@@ -55,12 +54,7 @@ public class InjectionAspect {
         if (currSession != null) {
             throw new IllegalStateException("Instance scope advice session is already in use.");
         }
-        AdviceSession newSession = AdviceSession.builder()
-                .time(LocalDateTime.now())
-                // FIXME: replace w/ real data in practice
-                // e.g. get user info from current HttpSession obj
-                .username(RandomStringUtils.random(10, true, true))
-                .build();
+        AdviceSession newSession = AdviceSessionBuilder.newSession();
         AdviceSessionContainer.setSession(newSession);
         log.debug("Advice session started: '{}'", newSession);
     }

@@ -1,25 +1,18 @@
-package mynghn.persistenceaop.entity;
+package mynghn.persistenceaop.sampleapp.entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class TodoItemHistory {
+public class TodoListHistory {
 
-    private String todoItemId;
+    private String todoListId;
 
     private Integer historySequenceNo;
 
-    private String todoItemTitle;
-
-    private String todoItemDescription;
-
-    private LocalDate todoItemDueDate;
-
-    private String todoItemTodoListId;
+    private String todoListTitle;
 
     private Boolean isDeleted;
 
