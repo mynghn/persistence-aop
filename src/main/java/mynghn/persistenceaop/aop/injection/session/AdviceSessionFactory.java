@@ -3,7 +3,7 @@ package mynghn.persistenceaop.aop.injection.session;
 import java.time.LocalDateTime;
 import org.apache.commons.lang3.RandomStringUtils;
 
-public class AdviceSessionBuilder {
+public class AdviceSessionFactory {
 
     public static AdviceSession newSession() {
         return AdviceSession.builder()

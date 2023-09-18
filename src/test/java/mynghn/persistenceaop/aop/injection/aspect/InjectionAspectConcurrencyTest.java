@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionBuilder;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionFactory;
 import mynghn.persistenceaop.sampleapp.entity.TodoList;
 import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
 import org.junit.jupiter.api.Test;
@@ -54,11 +54,11 @@ class InjectionAspectConcurrencyTest {
         assertThat(testSuccessCount.get()).isEqualTo(nThreads);
     }
 
-    private MockedStatic<AdviceSessionBuilder> stubAdviceSessionBuilder(AdviceSession testSession) {
-        MockedStatic<AdviceSessionBuilder> mocked = mockStatic(
-                AdviceSessionBuilder.class);
+    private MockedStatic<AdviceSessionFactory> stubAdviceSessionFactory(AdviceSession testSession) {
+        MockedStatic<AdviceSessionFactory> mocked = mockStatic(
+                AdviceSessionFactory.class);
 
-        mocked.when(AdviceSessionBuilder::newSession).thenReturn(testSession);
+        mocked.when(AdviceSessionFactory::newSession).thenReturn(testSession);
 
         return mocked;
     }
@@ -74,7 +74,7 @@ class InjectionAspectConcurrencyTest {
         TodoList testInsertVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder(testSession)) {
+        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory(testSession)) {
             aopTargetedMapper.insert(testInsertVo);
         }
 

@@ -8,7 +8,7 @@ import static org.mockito.Mockito.verify;
 
 import java.time.LocalDateTime;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionBuilder;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionFactory;
 import mynghn.persistenceaop.sampleapp.entity.TodoList;
 import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +40,7 @@ class InjectionAspectTest {
         TodoList testInsertVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
             getAopTargetedMapper().insert(testInsertVo);
         }
 
@@ -63,7 +63,7 @@ class InjectionAspectTest {
         TodoList testUpdateVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
             getAopTargetedMapper().update("Testing...", testUpdateVo);
         }
 
@@ -87,7 +87,7 @@ class InjectionAspectTest {
         TodoListMapper aopTargetedMapper = getAopTargetedMapper();
 
         // Act
-        try (MockedStatic<AdviceSessionBuilder> ignored = stubAdviceSessionBuilder()) {
+        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
             aopTargetedMapper.updateAll("Testing...", testUpdateVo);
         }
 
@@ -104,11 +104,11 @@ class InjectionAspectTest {
         assertThat(actualUpdateVo.getLastModifiedAt()).isEqualTo(testSession.time());
     }
 
-    private MockedStatic<AdviceSessionBuilder> stubAdviceSessionBuilder() {
-        MockedStatic<AdviceSessionBuilder> mocked = mockStatic(
-                AdviceSessionBuilder.class);
+    private MockedStatic<AdviceSessionFactory> stubAdviceSessionFactory() {
+        MockedStatic<AdviceSessionFactory> mocked = mockStatic(
+                AdviceSessionFactory.class);
 
-        mocked.when(AdviceSessionBuilder::newSession).thenReturn(testSession);
+        mocked.when(AdviceSessionFactory::newSession).thenReturn(testSession);
 
         return mocked;
     }

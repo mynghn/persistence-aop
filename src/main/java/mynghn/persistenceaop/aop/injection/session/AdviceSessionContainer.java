@@ -13,7 +13,7 @@ public final class AdviceSessionContainer {
         if (currSession != null) {
             throw new IllegalStateException("Advice scope session is already in use.");
         }
-        AdviceSession newSession = AdviceSessionBuilder.newSession();
+        AdviceSession newSession = AdviceSessionFactory.newSession();
         threadLocalSessionStorage.set(newSession);
         return newSession;
     }
