@@ -13,7 +13,6 @@ import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionBuilder;
 import mynghn.persistenceaop.aop.injection.session.AdviceSessionContainer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.JoinPoint;
@@ -50,24 +49,13 @@ public class InjectionAspect {
     }
 
     private void startSession() {
-        AdviceSession currSession = AdviceSessionContainer.getSession();
-        if (currSession != null) {
-            throw new IllegalStateException("Instance scope advice session is already in use.");
-        }
-        AdviceSession newSession = AdviceSessionBuilder.newSession();
-        AdviceSessionContainer.setSession(newSession);
+        AdviceSession newSession = AdviceSessionContainer.startSession();
         log.debug("Advice session started: '{}'", newSession);
     }
 
     private void endSession() {
-        AdviceSession currSession = AdviceSessionContainer.getSession();
-        if (currSession == null) {
-            throw new IllegalStateException(
-                    "Advice session does not exist. Start a session first, or illegal session termination has occurred."
-            );
-        }
-        AdviceSessionContainer.removeSession();
-        log.debug("Advice session terminated. ({})", currSession);
+        AdviceSessionContainer.endSession();
+        log.debug("Advice session terminated.");
     }
 
     @Before("@annotation(mynghn.persistenceaop.aop.injection.annotation.InjectStamp)")

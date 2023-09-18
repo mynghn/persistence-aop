@@ -8,11 +8,23 @@ public final class AdviceSessionContainer {
         return threadLocalSessionStorage.get();
     }
 
-    public static void setSession(AdviceSession session) {
-        threadLocalSessionStorage.set(session);
+    public static AdviceSession startSession() {
+        AdviceSession currSession = AdviceSessionContainer.getSession();
+        if (currSession != null) {
+            throw new IllegalStateException("Advice scope session is already in use.");
+        }
+        AdviceSession newSession = AdviceSessionBuilder.newSession();
+        threadLocalSessionStorage.set(newSession);
+        return newSession;
     }
 
-    public static void removeSession() {
+    public static void endSession() {
+        AdviceSession currSession = AdviceSessionContainer.getSession();
+        if (currSession == null) {
+            throw new IllegalStateException(
+                    "Advice session does not exist. Start a session first, or an illegal session termination might have occurred."
+            );
+        }
         threadLocalSessionStorage.remove();
     }
 }
