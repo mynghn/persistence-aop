@@ -13,7 +13,7 @@ import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
 import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionContainer;
+import mynghn.persistenceaop.aop.injection.session.AdviceSessionHandler;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
@@ -49,12 +49,12 @@ public class InjectionAspect {
     }
 
     private void startSession() {
-        AdviceSession newSession = AdviceSessionContainer.startSession();
+        AdviceSession newSession = AdviceSessionHandler.startSession();
         log.debug("Advice session started: '{}'", newSession);
     }
 
     private void endSession() {
-        AdviceSessionContainer.endSession();
+        AdviceSessionHandler.endSession();
         log.debug("Advice session terminated.");
     }
 
