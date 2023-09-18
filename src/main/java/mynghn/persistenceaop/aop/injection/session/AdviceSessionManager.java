@@ -1,6 +1,6 @@
 package mynghn.persistenceaop.aop.injection.session;
 
-public class AdviceSessionHandler {
+public class AdviceSessionManager {
 
     private static final ThreadLocal<AdviceSession> threadLocalSessionStorage = new ThreadLocal<>();
 
@@ -9,7 +9,7 @@ public class AdviceSessionHandler {
     }
 
     public static AdviceSession startSession() {
-        AdviceSession currSession = AdviceSessionHandler.currSession();
+        AdviceSession currSession = AdviceSessionManager.currSession();
         if (currSession != null) {
             throw new IllegalStateException("Advice scope session is already in use.");
         }
@@ -19,7 +19,7 @@ public class AdviceSessionHandler {
     }
 
     public static void endSession() {
-        AdviceSession currSession = AdviceSessionHandler.currSession();
+        AdviceSession currSession = AdviceSessionManager.currSession();
         if (currSession == null) {
             throw new IllegalStateException(
                     "Advice session does not exist. Start a session first, or an illegal session termination might have occurred."
