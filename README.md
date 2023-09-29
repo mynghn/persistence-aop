@@ -1,25 +1,26 @@
-# persistence-aop
-Demo project for Spring AOP features (especially within persistence layer)
+# Persistence AOP
+Demo project for some AOP features implementation tackling common issues in persistence layer.
 
-## Requirements
+## Some common concerns...
 
-- For some DB tables, revision history needs to be recorded. (when insert/update occurs) &rarr; [AOP feature 1](#1-aop-advice-for-recording-revision-histories)
-  - Each table has its own history table.
-  - History tables include full snapshot of original table columns and some additive columns.
-    - e.g. sequence numbering of history by each table row
+1. For some database tables, revision history needs to be recorded. &rarr; [**Feature 1**](./src/main/java/mynghn/persistenceaop/aop/history)
+   - _Specific strategies may vary, but in this project..._
+   - Each table has its own history table.
+   - History tables consists of full snapshot of original columns with some additional ones (e.g. sequence numbering of recorded histories by each original entity).
 
-- Some columns are shared across tables and have identical value assigning strategy. &rarr; [AOP feature 2](#2-aop-advice-for-injecting-repeated-data-to-method-arguments)
+2. Some columns are repeated across tables and have identical value assigning strategy. &rarr; [**Feature 2**](./src/main/java/mynghn/persistenceaop/aop/injection)
+   - e.g. _first inserted time_, _last modified time_, etc...
 
-- Persistence Framework: _MyBatis 3_
-- DBMS: _PostgreSQL_
+3. Some records need to be fetched from database and remain cached for repetitive usage. &rarr; [**Feature 3**](./src/main/java/mynghn/persistenceaop/aop/context)
+   - e.g. _system level enum codes referenced across the whole application_
 
-## Features
+## Implemented features
 
-#### 1. [AOP advice for recording revision histories](./src/main/java/mynghn/persistenceaop/aop/history)
-#### 2. [AOP advice for injecting repeated data to method arguments](./src/main/java/mynghn/persistenceaop/aop/injection)
+1. [Record histories **after** database revision](./src/main/java/mynghn/persistenceaop/aop/history)
+2. [Inject common data(_stamp_) into method arguments **before** execution](./src/main/java/mynghn/persistenceaop/aop/injection)
+3. [Provide temporary _context_ **around** method execution](./src/main/java/mynghn/persistenceaop/aop/context)
 
-## Examples
+## Technical requirements
+- Persistence Framework: **MyBatis 3**
+- DBMS: **PostgreSQL**
 
-Sample application is implemented as a integrated test context.
-
-Go to [test sources root](./src/test) to explore sample application codes and test cases for implemented AOP features.  
