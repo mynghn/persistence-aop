@@ -3,35 +3,45 @@ package mynghn.persistenceaop.aop.injection.aspect;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
-import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionFactory;
+import mynghn.persistenceaop.aop.context.aspect.RequestSessionProviderAspect;
+import mynghn.persistenceaop.aop.context.contexts.RequestSession;
 import mynghn.persistenceaop.sampleapp.entity.TodoList;
 import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
-class InjectionAspectTest {
+class InjectionAdviceDelegatorAspectTest {
 
     private final TodoListMapper mockMapper = mock(TodoListMapper.class);
-    private final AspectJProxyFactory aspectJProxyFactory = new AspectJProxyFactory(mockMapper);
-    private final InjectionAspect sut = new InjectionAspect();
+    private final AspectJProxyFactory mockMapperAspectJProxyFactory = new AspectJProxyFactory(
+            mockMapper);
 
-    private final AdviceSession testSession = AdviceSession.builder()
+    private final RequestSession testSession = RequestSession.builder()
             .username("Test User")
             .time(LocalDateTime.now())
             .build();
 
     @BeforeEach
     void setup() {
-        // Register InjectionAspect
-        aspectJProxyFactory.addAspect(sut);
+        // Stub RequestSessionProviderAspect
+        RequestSessionProviderAspect sessionProviderAspectSpy = spy(
+                RequestSessionProviderAspect.class);
+        when(sessionProviderAspectSpy.buildContext()).thenReturn(testSession);
+
+        // Register AOP aspects
+        AspectJProxyFactory adviceCoreProxyFactory = new AspectJProxyFactory(
+                new InjectionAdviceCore(sessionProviderAspectSpy));
+        adviceCoreProxyFactory.addAspect(sessionProviderAspectSpy);
+
+        mockMapperAspectJProxyFactory.addAspect(new InjectionAdviceDelegatorAspect(
+                adviceCoreProxyFactory.getProxy()));
     }
 
     @Test
@@ -40,9 +50,7 @@ class InjectionAspectTest {
         TodoList testInsertVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
-            getAopTargetedMapper().insert(testInsertVo);
-        }
+        getAopTargetedMapper().insert(testInsertVo);
 
         // Assert
         ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
@@ -63,9 +71,7 @@ class InjectionAspectTest {
         TodoList testUpdateVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
-            getAopTargetedMapper().update("Testing...", testUpdateVo);
-        }
+        getAopTargetedMapper().update("Testing...", testUpdateVo);
 
         // Assert
         ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
@@ -87,9 +93,7 @@ class InjectionAspectTest {
         TodoListMapper aopTargetedMapper = getAopTargetedMapper();
 
         // Act
-        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory()) {
-            aopTargetedMapper.updateAll("Testing...", testUpdateVo);
-        }
+        aopTargetedMapper.updateAll("Testing...", testUpdateVo);
 
         // Assert
         ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);
@@ -104,16 +108,7 @@ class InjectionAspectTest {
         assertThat(actualUpdateVo.getLastModifiedAt()).isEqualTo(testSession.time());
     }
 
-    private MockedStatic<AdviceSessionFactory> stubAdviceSessionFactory() {
-        MockedStatic<AdviceSessionFactory> mocked = mockStatic(
-                AdviceSessionFactory.class);
-
-        mocked.when(AdviceSessionFactory::newSession).thenReturn(testSession);
-
-        return mocked;
-    }
-
     private TodoListMapper getAopTargetedMapper() {
-        return aspectJProxyFactory.getProxy();
+        return mockMapperAspectJProxyFactory.getProxy();
     }
 }

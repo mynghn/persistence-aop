@@ -7,30 +7,30 @@ import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import mynghn.persistenceaop.aop.context.annotation.UseExecutionScopeContext;
+import mynghn.persistenceaop.aop.context.aspect.RequestSessionProviderAspect;
+import mynghn.persistenceaop.aop.context.contexts.RequestSession;
 import mynghn.persistenceaop.aop.injection.annotation.Injected;
 import mynghn.persistenceaop.aop.injection.injector.CreateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.SoftDeleteStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.UpdateStampInjector;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
-import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionManager;
 import org.apache.commons.lang3.tuple.Pair;
 import org.aspectj.lang.JoinPoint;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
 
 @Slf4j
-@Aspect
 @Component
-public class InjectionAspect {
+public class InjectionAdviceCore {
 
-    private static final List<StampInjector> injectors = List.of(
-            new CreateStampInjector(),
-            new UpdateStampInjector(),
-            new SoftDeleteStampInjector()
-    );
+    private final List<StampInjector> injectors;
+
+    public InjectionAdviceCore(RequestSessionProviderAspect sessionProvider) {
+        injectors = List.of(new CreateStampInjector(sessionProvider),
+                new UpdateStampInjector(sessionProvider),
+                new SoftDeleteStampInjector());
+    }
 
     private static Stream<Pair<Injected, Object>> getAnnotatedTargetArgs(JoinPoint joinPoint) {
         Annotation[][] paramAnnotationsArr = ((MethodSignature) joinPoint.getSignature()).getMethod()
@@ -48,24 +48,11 @@ public class InjectionAspect {
                 ));
     }
 
-    private void startSession() {
-        AdviceSession newSession = AdviceSessionManager.startSession();
-        log.debug("Advice session started: '{}'", newSession);
-    }
-
-    private void endSession() {
-        AdviceSessionManager.endSession();
-        log.debug("Advice session terminated.");
-    }
-
-    @Before("@annotation(mynghn.persistenceaop.aop.injection.annotation.InjectStamp)")
+    @UseExecutionScopeContext(RequestSession.class)
     public void auditBefore(JoinPoint joinPoint) {
         log.debug("Advice starting on join point: {}", joinPoint);
 
         Stream<Pair<Injected, Object>> annotatedArgTargets = getAnnotatedTargetArgs(joinPoint);
-
-        // Start session
-        startSession();
 
         annotatedArgTargets.forEach(
                 pair -> {
@@ -75,9 +62,6 @@ public class InjectionAspect {
                     injectStamps(annotation.value(), arg);
                 }
         );
-
-        // End session
-        endSession();
     }
 
 

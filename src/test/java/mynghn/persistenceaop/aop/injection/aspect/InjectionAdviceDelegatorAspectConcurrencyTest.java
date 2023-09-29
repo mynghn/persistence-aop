@@ -2,24 +2,24 @@ package mynghn.persistenceaop.aop.injection.aspect;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import mynghn.persistenceaop.aop.injection.session.AdviceSession;
-import mynghn.persistenceaop.aop.injection.session.AdviceSessionFactory;
+import mynghn.persistenceaop.aop.context.aspect.RequestSessionProviderAspect;
+import mynghn.persistenceaop.aop.context.contexts.RequestSession;
 import mynghn.persistenceaop.sampleapp.entity.TodoList;
 import mynghn.persistenceaop.sampleapp.mapper.TodoListMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
-class InjectionAspectConcurrencyTest {
+class InjectionAdviceDelegatorAspectConcurrencyTest {
 
     @Test
     void stampInjectionBeforeInsertInMultiThreadsWork() throws InterruptedException {
@@ -36,7 +36,7 @@ class InjectionAspectConcurrencyTest {
             testExecutorService.execute(() -> {
                 try {
                     testCreateStampUpdateStampAndSoftDeleteStampInjectedBeforeInsert(
-                            AdviceSession.builder()
+                            RequestSession.builder()
                                     .time(LocalDateTime.now())
                                     .username(String.format("Test #%d", testThreadNo))
                                     .build()
@@ -54,29 +54,28 @@ class InjectionAspectConcurrencyTest {
         assertThat(testSuccessCount.get()).isEqualTo(nThreads);
     }
 
-    private MockedStatic<AdviceSessionFactory> stubAdviceSessionFactory(AdviceSession testSession) {
-        MockedStatic<AdviceSessionFactory> mocked = mockStatic(
-                AdviceSessionFactory.class);
-
-        mocked.when(AdviceSessionFactory::newSession).thenReturn(testSession);
-
-        return mocked;
-    }
-
-    private void testCreateStampUpdateStampAndSoftDeleteStampInjectedBeforeInsert(AdviceSession testSession) {
+    private void testCreateStampUpdateStampAndSoftDeleteStampInjectedBeforeInsert(
+            RequestSession testSession) {
         // Arrange
-        TodoListMapper mockMapper = mock(TodoListMapper.class);
+        RequestSessionProviderAspect sessionProviderAspectSpy = spy(
+                RequestSessionProviderAspect.class);
+        when(sessionProviderAspectSpy.buildContext()).thenReturn(testSession);
 
-        AspectJProxyFactory aspectJProxyFactory = new AspectJProxyFactory(mockMapper);
-        aspectJProxyFactory.addAspect(new InjectionAspect());
-        TodoListMapper aopTargetedMapper = aspectJProxyFactory.getProxy();
+        AspectJProxyFactory adviceCoreProxyFactory = new AspectJProxyFactory(
+                new InjectionAdviceCore(sessionProviderAspectSpy));
+        adviceCoreProxyFactory.addAspect(sessionProviderAspectSpy);
+
+        TodoListMapper mockMapper = mock(TodoListMapper.class);
+        AspectJProxyFactory mapperProxyFactory = new AspectJProxyFactory(
+                mockMapper);
+        mapperProxyFactory.addAspect(
+                new InjectionAdviceDelegatorAspect(adviceCoreProxyFactory.getProxy()));
+        TodoListMapper aopTargetMapper = mapperProxyFactory.getProxy();
 
         TodoList testInsertVo = TodoList.builder().build();
 
         // Act
-        try (MockedStatic<AdviceSessionFactory> ignored = stubAdviceSessionFactory(testSession)) {
-            aopTargetedMapper.insert(testInsertVo);
-        }
+        aopTargetMapper.insert(testInsertVo);
 
         // Assert
         ArgumentCaptor<TodoList> argumentCaptor = ArgumentCaptor.forClass(TodoList.class);

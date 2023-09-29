@@ -2,12 +2,19 @@ package mynghn.persistenceaop.aop.injection.injector;
 
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
+import mynghn.persistenceaop.aop.context.aspect.RequestSessionProviderAspect;
+import mynghn.persistenceaop.aop.context.contexts.RequestSession;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjectorWithContext;
-import mynghn.persistenceaop.aop.injection.session.AdviceSession;
 import mynghn.persistenceaop.entity.base.CreateStamp;
+import org.springframework.stereotype.Component;
 
 @Slf4j
+@Component
 public class CreateStampInjector extends StampInjectorWithContext {
+
+    public CreateStampInjector(RequestSessionProviderAspect sessionProvider) {
+        super(sessionProvider);
+    }
 
     @Override
     public boolean supports(Class<?> stampType) {
@@ -23,7 +30,7 @@ public class CreateStampInjector extends StampInjectorWithContext {
             ));
         }
 
-        AdviceSession currSession = getSession();
+        RequestSession currSession = getSession();
         if (stampPayload.getCreatedAt() == null) {
             LocalDateTime currSessionTime = currSession.time();
             stampPayload.setCreatedAt(currSessionTime);

@@ -3,8 +3,10 @@ package mynghn.persistenceaop.aop.injection.injector;
 import lombok.extern.slf4j.Slf4j;
 import mynghn.persistenceaop.aop.injection.injector.base.StampInjector;
 import mynghn.persistenceaop.entity.base.SoftDeleteEntity;
+import org.springframework.stereotype.Component;
 
 @Slf4j
+@Component
 public class SoftDeleteStampInjector implements StampInjector {
 
     @Override
