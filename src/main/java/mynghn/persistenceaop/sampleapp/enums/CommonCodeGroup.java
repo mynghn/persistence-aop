@@ -6,7 +6,8 @@ import lombok.ToString;
 @Getter
 @ToString
 public enum CommonCodeGroup {
-    ;
+    TODO_LIST_TYPE("G01", "TODO_LIST_TYPE"),
+    TODO_ITEM_TYPE("G02", "TODO_ITEM_TYPE");
 
     private final String id;
     private final String name;

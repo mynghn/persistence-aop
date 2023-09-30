@@ -6,11 +6,10 @@ import mynghn.persistenceaop.entity.base.EntityBase;
 
 @Getter
 @SuperBuilder
-public class TodoList extends EntityBase {
+public class TodoItem extends EntityBase {
 
+    private final String todoListId;
     private final String id;
-
     private final String title;
-
     private final String typeCodeValue;
 }
