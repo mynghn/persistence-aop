@@ -19,11 +19,11 @@ public class CommonCodeReader {
     private final CommonCodeMapper mapper;
 
 
-    public CommonCode get(CommonCodeGroup group, String codeId) {
+    public CommonCode get(CommonCodeGroup group, String codeValue) {
         Optional<CommonCodesCache> cacheOptional = cacheProvider.get();
         if (cacheOptional.isPresent()) {
-            return cacheOptional.get().get(group, codeId);
+            return cacheOptional.get().get(group, codeValue);
         }
-        return mapper.select(new CommonCodeId(group.getId(), codeId));
+        return mapper.select(new CommonCodeId(group.getId(), codeValue));
     }
 }

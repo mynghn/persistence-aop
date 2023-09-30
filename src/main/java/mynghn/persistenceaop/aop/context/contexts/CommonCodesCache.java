@@ -21,16 +21,16 @@ public class CommonCodesCache implements ExecutionScopeContext {
     private final Map<CommonCodeGroup, Map<String, CommonCode>> storage = new HashMap<>();
     private final CommonCodeMapper mapper;
 
-    public CommonCode get(CommonCodeGroup group, String codeId) {
+    public CommonCode get(CommonCodeGroup group, String codeValue) {
         Map<String, CommonCode> groupBook = storage.computeIfAbsent(group, this::buildGroupBook);
 
-        if (!groupBook.containsKey(codeId)) {
+        if (!groupBook.containsKey(codeValue)) {
             throw new IllegalArgumentException(
                     String.format("Common code w/ ID '%s' does not exist in group '%s'",
-                            codeId, group));
+                            codeValue, group));
         }
 
-        return groupBook.get(codeId);
+        return groupBook.get(codeValue);
     }
 
     private Map<String, CommonCode> buildGroupBook(CommonCodeGroup group) {
