@@ -44,7 +44,7 @@ public class CommonCodesCache implements ExecutionScopeContext {
         log.debug("Common codes in group '{}' loaded to cache: {}", group, fetched);
 
         return fetched.stream()
-                .collect(Collectors.toMap(CommonCode::getGroupId, Function.identity()));
+                .collect(Collectors.toMap(CommonCode::getValue, Function.identity()));
     }
 
 }
