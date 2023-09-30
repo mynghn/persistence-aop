@@ -22,5 +22,3 @@ Demo project for some AOP features implementation tackling common issues in pers
 
 ## Technical requirements
 - Persistence Framework: **MyBatis 3**
-- DBMS: **PostgreSQL**
-
