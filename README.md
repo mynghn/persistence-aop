@@ -1,5 +1,5 @@
 # Persistence AOP
-Demo project for some AOP features implementation tackling common issues in persistence layer.
+Demo project for some AOP features implementation tackling issues in persistence layer.
 
 ## Some common concerns...
 
@@ -22,3 +22,7 @@ Demo project for some AOP features implementation tackling common issues in pers
 
 ## Technical requirements
 - Persistence Framework: **MyBatis 3**
+
+## TODOs
+- [ ] Write tests for ExecutionScopeContextProvider and CommonCodesCacheProviderAspect.
+- [ ] Update READMEs for each feature.

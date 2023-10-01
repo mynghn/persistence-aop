@@ -1,4 +1,5 @@
 ## Workflow of DB revision history recording AOP advice
+#### (*_This document is currently out of date. Future update will be done._)
 
 1. Annotate insert/update Mapper methods w/ [`@RecordHistory`](./annotation/RecordHistory.java) to mark as point cut target.
 2. Advice [`HistoryAspect.recordEntityHistory()`](./aspect/HistoryAspect.java) is called _@AfterReturning_ `@RecordHistory` annotated method execution result.

@@ -1,4 +1,5 @@
 ## Workflow of repeated data injection AOP advice
+#### (*_This document is currently out of date. Future update will be done._)
 
 1. Annotate methods w/ [`@InjectStamp`](./annotation/InjectStamp.java) to mark as point cut target.
 2. Annotate method parameters w/ [`@Injected`](./annotation/Injected.java) to mark as injection target.
